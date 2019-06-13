@@ -1,0 +1,33 @@
+html, body { 
+    margin: 0; 
+    height: 100%; 
+} 
+
+canvas { 
+    display: block; 
+} 
+
+body > div{
+    position: fixed;
+    bottom: 0px;
+    right: 0px;
+}
+
+.btn{
+    border: 0px none;
+    margin: 1vh 1.2vw 1vh 1.2vw;
+    padding: .7vh .7vw .7vh .7vw;
+    font-size: 2.7vh;
+    border-radius: 6px;
+    background-color: rgba(102, 232, 255, 0.6);
+    color: #E7F7FF;
+    text-shadow: 0px 0px 1.5px #002B49;
+}
+.btn:hover{
+    background-color: rgba(102, 232, 255, 0.8);
+    box-shadow: 0px 0px 1.5px #0099ff;
+    cursor: pointer;
+}
+.btn:active{
+    background-color: rgba(102, 232, 255, 0.3);
+}
