@@ -44,13 +44,27 @@ geomBase.spin = (dot, rad) => {
 	return ret;
 };
 
+geomBase.rotateM = (dim, cords, rad) => {
+	let J = math.identity(dim--).valueOf();
+	cords.forEach((cord, i) => {
+		const I = math.identity(dim + 1).valueOf();
+		[I[cord[0]][cord[0]], I[cord[0]][cord[1]]] = [Math.cos(rad), -Math.sin(rad)];
+		[I[cord[1]][cord[0]], I[cord[1]][cord[1]]] = [Math.sin(rad), Math.cos(rad)];
+		J = math.multiply(I, J);
+	});
+	return J;
+}
+
+geomBase.combNum = dim => k_combinations(new Array(dim).fill(0).map((e, index) => index), 2);
+
 
 class hyperCube extends geomBase{
-	constructor(dim, spin = true, offset = null, ...dims){
+	constructor(dim, dims, offset = null, spin, projType = true){
 		super();
 		this.dim = dim;
-		this.spin = spin;
-		this.dims = dims.length ? dims : Array(dim).fill(30);
+		this.spin = !!spin ? spin : Array(dim).fill(false);
+		this.dims = !!dims ? dims : Array(dim).fill(30);
+		this.projType = projType;
 		this.surf = this.baseSurf(dim, dims);
 		this.proj = [];
 		this.lines = [];
@@ -131,7 +145,7 @@ class hyperCube extends geomBase{
 		}else{
 			this.proj = this.surf.map(vertices => {
 				return vertices.map(dot => {
-					return dot.slice(0,4);
+					return dot.slice(0,3);
 				});
 			});
 		}
@@ -189,11 +203,11 @@ class hyperCube extends geomBase{
 		if(!!angleChange)
 			this.surf = this.surf.map(vertices => {
 				return vertices.map(dot => {
-					return geomBase.spin(dot, angleChange);
+					return math.multiply(geomBase.rotateM(this.dim, this.spin, angleChange), dot);
 				});
 			});
 		if(!!angleChange || !!offset){
-			this.projSurf(true);
+			this.projSurf(this.projType);
 			if(!!offset){
 				this.movProj(offset);
 				this.offset = offset;
