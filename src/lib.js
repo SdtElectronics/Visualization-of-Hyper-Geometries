@@ -44,12 +44,12 @@ geomBase.spin = (dot, rad) => {
 	return ret;
 };
 
-geomBase.rotateM = (dim, cords, rad) => {
+geomBase.rotateM = (dim, cords, rads) => {
 	let J = math.identity(dim--).valueOf();
 	cords.forEach((cord, i) => {
 		const I = math.identity(dim + 1).valueOf();
-		[I[cord[0]][cord[0]], I[cord[0]][cord[1]]] = [Math.cos(rad), -Math.sin(rad)];
-		[I[cord[1]][cord[0]], I[cord[1]][cord[1]]] = [Math.sin(rad), Math.cos(rad)];
+		[I[cord[0]][cord[0]], I[cord[0]][cord[1]]] = [Math.cos(rads[i]), -Math.sin(rads[i])];
+		[I[cord[1]][cord[0]], I[cord[1]][cord[1]]] = [Math.sin(rads[i]), Math.cos(rads[i])];
 		J = math.multiply(I, J);
 	});
 	return J;
@@ -59,18 +59,19 @@ geomBase.combNum = dim => k_combinations(new Array(dim).fill(0).map((e, index) =
 
 
 class hyperCube extends geomBase{
-	constructor(dim, dims, offset = null, spin, projType = true){
+	constructor(dim, dims, offset = null, rotation = null, spin, projType = true){
 		super();
 		this.dim = dim;
 		this.spin = !!spin ? spin : Array(dim).fill(false);
 		this.dims = !!dims ? dims : Array(dim).fill(30);
 		this.projType = projType;
-		this.surf = this.baseSurf(dim, dims);
+		this.surf = this.baseSurf(dim);
 		this.proj = [];
-		this.lines = [];
 		this.mesh = [];
+		this.lines = [];
 		this.movSurf();
 		this.extSurf();
+		this.initPara(rotation);
 		this.update(null, !!offset ? offset : [0, 0, 0]);
 		this.lines.flat().forEach(e => scene.add(e));
 		this.mesh.forEach(e => scene.add(e));
@@ -159,29 +160,22 @@ class hyperCube extends geomBase{
 		});
 	}
 
-	updatePara(arr, index){
-		const vertices = arr.map(ele => {
-			return new THREE.Vector3(...ele);
-		});
-		const faces = [new THREE.Face3(0, 1, 2), new THREE.Face3(1, 2, 3)];
-		if(!!this.mesh && !!this.mesh[index]){
-			const geom = this.mesh[index].children[0];
-			geom.geometry.vertices = vertices;
-			geom.geometry.faces = faces;
-			geom.geometry.computeFaceNormals(); 
-			geom.geometry.elementsNeedUpdate = true;
-			geom.geometry.normalsNeedUpdate = true;
-			geom.geometry.verticesNeedUpdate = true;
-			//this.mesh[index].children[0].geometry.attributes.position.needsUpdate = true;
-			vertices.slice(0, 2).concat(vertices[3], vertices[2], vertices[0]).reduce((pre, cur, i) => {
-				const line = this.lines[index][i - 1];
-				line.geometry.vertices[0] = pre;
-				line.geometry.vertices[1] = cur;
-				line.geometry.verticesNeedUpdate = true;
-				//line.geometry.attributes.position.needsUpdate = true;
-				return cur;
-			})
-		}else{
+	initPara(r){
+		if(!!r){
+			this.surf = this.surf.map(vertices => {
+				const spin = r.map(e => e.slice(0,2));
+				const angle = r.map(e => e.slice(2,3));
+				return vertices.map(dot => {
+					return math.multiply(geomBase.rotateM(this.dim, spin, angle), dot);
+				});
+			});
+		}
+		this.projSurf();
+		this.proj.forEach((arr, index) => {
+			const vertices = arr.map(ele => {
+				return new THREE.Vector3(...ele);
+			});
+			const faces = [new THREE.Face3(0, 1, 2), new THREE.Face3(1, 2, 3)];
 			const geom = new THREE.Geometry();
 			geom.vertices = vertices;
 			geom.faces = faces;
@@ -196,14 +190,36 @@ class hyperCube extends geomBase{
 				return cur;
 			});
 			this.lines.push(lineBuf);
-		}
+		});
+	}
+	
+	updatePara(arr, index){
+		const vertices = arr.map(ele => {
+			return new THREE.Vector3(...ele);
+		});
+		const faces = [new THREE.Face3(0, 1, 2), new THREE.Face3(1, 2, 3)];
+		const geom = this.mesh[index].children[0];
+		geom.geometry.vertices = vertices;
+		geom.geometry.faces = faces;
+		geom.geometry.computeFaceNormals(); 
+		geom.geometry.elementsNeedUpdate = true;
+		geom.geometry.normalsNeedUpdate = true;
+		geom.geometry.verticesNeedUpdate = true;
+		vertices.slice(0, 2).concat(vertices[3], vertices[2], vertices[0]).reduce((pre, cur, i) => {
+			const line = this.lines[index][i - 1];
+			line.geometry.vertices[0] = pre;
+			line.geometry.vertices[1] = cur;
+			line.geometry.verticesNeedUpdate = true;
+			return cur;
+		})
 	}
 
 	update(angleChange, offset){
 		if(!!angleChange)
 			this.surf = this.surf.map(vertices => {
 				return vertices.map(dot => {
-					return math.multiply(geomBase.rotateM(this.dim, this.spin, angleChange), dot);
+					const r = this.spin.concat().fill(angleChange);
+					return math.multiply(geomBase.rotateM(this.dim, this.spin, r), dot);
 				});
 			});
 		if(!!angleChange || !!offset){
@@ -222,25 +238,173 @@ class hyperCube extends geomBase{
 	}
 }
 
+class simplex4 extends geomBase{
+	constructor(dims, offset = null, rotation = null, spin, projType = true){
+		super();
+		this.dim = 4;
+		this.spin = !!spin ? spin : Array(dim).fill(false);
+		this.dims = !!dims ? dims : Array(dim).fill(30);
+		this.projType = projType;
+		this.surf = this.baseSurf();
+		this.proj = [];
+		this.mesh = [];
+		this.lines = [];
+		this.initTri(rotation);
+		this.update(null, !!offset ? offset : [0, 0, 0]);
+		this.lines.flat().forEach(e => scene.add(e));
+		this.mesh.forEach(e => scene.add(e));
+	}
+
+	baseSurf(){
+		const z = 1 / Math.sqrt(5);
+		let vertices = [[1, 1, 1, -z], 
+						  [1, -1, -1, -z], 
+						  [-1, 1, -1, -z],
+						  [-1, -1, 1, -z],
+						  [0, 0, 0, 1 / z - z]];
+		if(!!this.dims){
+			let I = math.identity(4).valueOf();
+			I = I.map((e, index) => {
+				if(!!this.dims[index])
+					e[index] = this.dims[index];
+				return e;
+			});
+			vertices = vertices.map(e => math.multiply(I, e));
+		}	
+		return k_combinations(vertices, 3);
+	}
+
+	projSurf(type){
+		if(type){
+			const dist = this.surf.flat().reduce((pre, cur) => {
+				const  curr = cur[3];
+				return pre > curr ? pre : curr;
+			});
+			this.proj = this.surf.map(vertices => {
+				return vertices.map(dot => {
+					return geomBase.proj(dot, dist);
+				});
+			});
+		}else{
+			this.proj = this.surf.map(vertices => {
+				return vertices.map(dot => {
+					return dot.slice(0,3);
+				});
+			});
+		}
+	}
+
+	movProj(offset){
+		this.proj = this.proj.map(vertices => {
+			return vertices.map(dot => {
+				return math.add(dot, offset).valueOf();
+			})
+		});
+	}
+
+	initTri(r){
+		if(!!r){
+			this.surf = this.surf.map(vertices => {
+				const spin = r.map(e => e.slice(0,2));
+				const angle = r.map(e => e.slice(2,3));
+				return vertices.map(dot => {
+					return math.multiply(geomBase.rotateM(this.dim, spin, angle), dot);
+				});
+			});
+		}
+		this.projSurf();
+		this.proj.forEach((arr, index) => {
+			const vertices = arr.map(ele => {
+				return new THREE.Vector3(...ele);
+			});
+			const faces = [new THREE.Face3(0, 1, 2)];
+			const geom = new THREE.Geometry();
+			geom.vertices = vertices;
+			geom.faces = faces;
+			geom.computeFaceNormals(); 
+			this.mesh.push(THREE.SceneUtils.createMultiMaterialObject(geom, geomBase.materials));
+			const lineBuf = [];
+			vertices.concat(vertices[0]).reduce((pre, cur) => {
+				const geometry = new THREE.Geometry();
+				geometry.vertices.push(pre);
+				geometry.vertices.push(cur);
+				lineBuf.push (new THREE.Line(geometry, geomBase.mat));
+				return cur;
+			});
+			this.lines.push(lineBuf);
+		});
+	}
+	
+	updateTri(arr, index){
+		const vertices = arr.map(ele => {
+			return new THREE.Vector3(...ele);
+		});
+		const faces = [new THREE.Face3(0, 1, 2)];
+		const geom = this.mesh[index].children[0];
+		geom.geometry.vertices = vertices;
+		geom.geometry.faces = faces;
+		geom.geometry.computeFaceNormals(); 
+		geom.geometry.elementsNeedUpdate = true;
+		geom.geometry.normalsNeedUpdate = true;
+		geom.geometry.verticesNeedUpdate = true;
+		vertices.concat(vertices[0]).reduce((pre, cur, i) => {
+			const line = this.lines[index][i - 1];
+			line.geometry.vertices[0] = pre;
+			line.geometry.vertices[1] = cur;
+			line.geometry.verticesNeedUpdate = true;
+			return cur;
+		})
+	}
+
+	update(angleChange, offset){
+		if(!!angleChange)
+			this.surf = this.surf.map(vertices => {
+				return vertices.map(dot => {
+					const r = this.spin.concat().fill(angleChange);
+					return math.multiply(geomBase.rotateM(this.dim, this.spin, r), dot);
+				});
+			});
+		if(!!angleChange || !!offset){
+			this.projSurf(this.projType);
+			if(!!offset){
+				this.movProj(offset);
+				this.offset = offset;
+			}else{
+				this.movProj(this.offset);
+			}
+
+			this.proj.forEach((arr, index) => {
+				this.updateTri(arr, index);
+			});
+		}
+	}
+}
+
+class hilbertCurve extends geomBase{
+	constructor(dim, orders, uLength = 30, projType = true){
+		super();
+		this.dim = dim;
+		
+		this.projType = projType;
+		
+	}
+}
+
 function toRad (deg){
 	return deg / 180 * Math.PI;
 }
 
 function k_combinations(set, k) {
 	var i, j, combs, head, tailcombs;
-	
-	// There is no way to take e.g. sets of 5 elements from
-	// a set of 4.
+
 	if (k > set.length || k <= 0) {
 		return [];
 	}
-	
-	// K-sized set has only one K-sized subset.
+
 	if (k == set.length) {
 		return [set];
 	}
-	
-	// There is N 1-sized subsets in a N-sized set.
+
 	if (k == 1) {
 		combs = [];
 		for (i = 0; i < set.length; i++) {
@@ -248,34 +412,11 @@ function k_combinations(set, k) {
 		}
 		return combs;
 	}
-	
-	// Assert {1 < k < set.length}
-	
-	// Algorithm description:
-	// To get k-combinations of a set, we want to join each element
-	// with all (k-1)-combinations of the other elements. The set of
-	// these k-sized sets would be the desired result. However, as we
-	// represent sets with lists, we need to take duplicates into
-	// account. To avoid producing duplicates and also unnecessary
-	// computing, we use the following approach: each element i
-	// divides the list into three: the preceding elements, the
-	// current element i, and the subsequent elements. For the first
-	// element, the list of preceding elements is empty. For element i,
-	// we compute the (k-1)-computations of the subsequent elements,
-	// join each with the element i, and store the joined to the set of
-	// computed k-combinations. We do not need to take the preceding
-	// elements into account, because they have already been the i:th
-	// element so they are already computed and stored. When the length
-	// of the subsequent list drops below (k-1), we cannot find any
-	// (k-1)-combs, hence the upper limit for the iteration:
+
 	combs = [];
 	for (i = 0; i < set.length - k + 1; i++) {
-		// head is a list that includes only our current element.
 		head = set.slice(i, i + 1);
-		// We take smaller combinations from the subsequent elements
 		tailcombs = k_combinations(set.slice(i + 1), k - 1);
-		// For each (k-1)-combination we join it with the current
-		// and store it to the set of k-combinations.
 		for (j = 0; j < tailcombs.length; j++) {
 			combs.push(head.concat(tailcombs[j]));
 		}
@@ -284,27 +425,10 @@ function k_combinations(set, k) {
 }
 
 
-/**
- * Combinations
- * 
- * Get all possible combinations of elements in a set.
- * 
- * Usage:
- *   combinations(set)
- * 
- * Examples:
- * 
- *   combinations([1, 2, 3])
- *   -> [[1],[2],[3],[1,2],[1,3],[2,3],[1,2,3]]
- * 
- *   combinations([1])
- *   -> [[1]]
- */
 function combinations(set) {
 	var k, i, combs, k_combs;
 	combs = [];
 	
-	// Calculate all non-empty k-combinations
 	for (k = 1; k <= set.length; k++) {
 		k_combs = k_combinations(set, k);
 		for (i = 0; i < k_combs.length; i++) {
