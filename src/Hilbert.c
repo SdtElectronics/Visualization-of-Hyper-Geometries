@@ -1,5 +1,6 @@
 #include <emscripten/emscripten.h>
 #include <string.h>
+
 void EMSCRIPTEN_KEEPALIVE InttoTranspose(const int dim, const long long int h, int * x){
   int idir, ibit, ifbit;
 
@@ -40,10 +41,10 @@ void EMSCRIPTEN_KEEPALIVE TransposetoAxes(int* X, int b, int n ){ /* position, #
 
 }
 
-char* EMSCRIPTEN_KEEPALIVE hilbert(const int dim, const int nbits, const long long int index){
+int* EMSCRIPTEN_KEEPALIVE hilbert(const int dim, const int nbits, const long long int index){
     int* point[dim];
     memset(point, 0, dim);
     InttoTranspose(dim, index, point);
     TransposetoAxes(point, nbits, dim);
-    return (char*)point;
+    return point;
 }
