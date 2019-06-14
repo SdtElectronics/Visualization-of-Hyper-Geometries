@@ -388,6 +388,7 @@ class hilbertCurve extends geomBase{
 		this.projType = projType;
 		this.proj = [];
 		this.Vecs = this.baseVec();
+		this.movVec();
 		this.initVec();
 		scene.add(this.line);
 	}
@@ -397,6 +398,10 @@ class hilbertCurve extends geomBase{
 			const value = this.hil(this.dim, ord, i);
 			return e.map((c, index) => this.uLength * getValue(value + index * 4, 'i32'));
 		});
+	}
+	movVec(){
+		const offset = Array(this.dim).fill(- (this.orders * this.uLength / 2));
+		this.Vecs = this.Vecs.map(dot => math.add(dot, offset).valueOf());
 	}
 	projVec(type){
 		if(type){
