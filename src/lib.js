@@ -15,7 +15,7 @@ geomBase.materials = [
 								 opacity:0.2, 
 								 side: THREE.DoubleSide})
 ];   
-geomBase.mat = new THREE.LineBasicMaterial( { color: 0xffffff, linewidth: 4 } );
+geomBase.mat = new THREE.LineBasicMaterial( { color: 0xffffff, linewidth: 6 } );
 
 geomBase.update = (angularSpeed = 0.1) => {
 	let time = (new Date()).getTime();
@@ -184,8 +184,7 @@ class hyperCube extends geomBase{
 			const lineBuf = [];
 			vertices.slice(0, 2).concat(vertices[3], vertices[2], vertices[0]).reduce((pre, cur) => {
 				const geometry = new THREE.Geometry();
-				geometry.vertices.push(pre);
-				geometry.vertices.push(cur);
+				geometry.vertices.push(pre, cur);
 				lineBuf.push (new THREE.Line(geometry, geomBase.mat));
 				return cur;
 			});
@@ -313,7 +312,7 @@ class simplex4 extends geomBase{
 			});
 		}
 		this.projSurf();
-		this.proj.forEach((arr, index) => {
+		this.proj.forEach(arr => {
 			const vertices = arr.map(ele => {
 				return new THREE.Vector3(...ele);
 			});
@@ -326,8 +325,7 @@ class simplex4 extends geomBase{
 			const lineBuf = [];
 			vertices.concat(vertices[0]).reduce((pre, cur) => {
 				const geometry = new THREE.Geometry();
-				geometry.vertices.push(pre);
-				geometry.vertices.push(cur);
+				geometry.vertices.push(pre, cur);
 				lineBuf.push (new THREE.Line(geometry, geomBase.mat));
 				return cur;
 			});
@@ -381,14 +379,48 @@ class simplex4 extends geomBase{
 }
 
 class hilbertCurve extends geomBase{
-	constructor(dim, orders, uLength = 30, projType = true){
+	constructor(dim, orders, uLength = 30, projType = false){
 		super();
 		this.dim = dim;
-		
+		this.hil = Module.cwrap("hilbert", "[number]", ["number", "number", "number"]);
+		this.orders = orders;
+		this.uLength = uLength;
 		this.projType = projType;
+		this.proj = [];
+		this.Vecs = this.baseVec();
+		this.initVec();
+		scene.add(this.line);
+	}
+	baseVec(){
+		const ord = (this.orders + 1) ** this.dim;
+		return Array(ord).fill(Array(this.dim).fill(0)).map((e, i) => {
+			const value = this.hil(this.dim, ord, i);
+			return e.map((c, index) => this.uLength * getValue(value + index * 4, 'i32'));
+		});
+	}
+	projVec(type){
+		if(type){
+			const dist = this.Vecs.reduce((pre, cur) => {
+				const  curr = cur[3];
+				return pre > curr ? pre : curr;
+			});
+			//console.log(dist);
+			this.proj = this.Vecs.map(dot => geomBase.proj(dot, dist));
+		}else{
+			this.proj = this.Vecs.map(dot => dot.slice(0,3));
+		}
+	}
+	initVec(){
+		this.projVec(this.projType);
+		const geometry = new THREE.Geometry();
+		this.proj.map(ele => {
+			geometry.vertices.push(new THREE.Vector3(...ele));
+		});
 		
+		this.line = new getColoredBufferLine( 0.2, 1.5, geometry );
 	}
 }
+
 
 function toRad (deg){
 	return deg / 180 * Math.PI;
@@ -437,3 +469,100 @@ function combinations(set) {
 	}
 	return combs;
 }
+
+function changeColor( line, options ) {
+
+	var colors = line.geometry.attributes.color.array;
+	var segments = line.geometry.attributes.color.count * 3;
+	var frequency = 1 /  ( options.steps * segments );
+	var color = new THREE.Color();
+  
+	for ( var i = 0, l = segments; i < l; i ++ ) {
+	  color.set ( makeColorGradient( i, frequency, options.phase ) );
+  
+	  colors[ i * 3 ] = color.r;
+	  colors[ i * 3 + 1 ] = color.g;
+	  colors[ i * 3 + 2 ] = color.b;
+  
+	}
+	
+	// update
+	  line.geometry.attributes[ "color" ].needsUpdate = true;
+	
+  }
+  
+  // create colored line
+  // using buffer geometry
+  function getColoredBufferLine ( steps, phase, geometry ) {
+  
+	var vertices = geometry.vertices;
+	var segments = geometry.vertices.length;
+  
+	// geometry
+	var geometry = new THREE.BufferGeometry();
+  
+	// material
+	var lineMaterial = new THREE.LineBasicMaterial({ vertexColors: THREE.VertexColors,
+													 linewidth: 9 });
+  
+	// attributes
+	var positions = new Float32Array( segments * 3 ); // 3 vertices per point
+	var colors = new Float32Array( segments * 3 );
+  
+	var frequency = 1 /  ( steps * segments );
+	var color = new THREE.Color();
+  
+	var x, y, z;
+  
+	for ( var i = 0, l = segments; i < l; i ++ ) {
+  
+	  x = vertices[ i ].x;
+	  y = vertices[ i ].y;
+	  z = vertices[ i ].z;
+  
+	  positions[ i * 3 ] = x;
+	  positions[ i * 3 + 1 ] = y;
+	  positions[ i * 3 + 2 ] = z;
+  
+	  color.set ( makeColorGradient( i, frequency, phase ) );
+  
+	  colors[ i * 3 ] = color.r;
+	  colors[ i * 3 + 1 ] = color.g;
+	  colors[ i * 3 + 2 ] = color.b;
+  
+	  }
+  
+	geometry.addAttribute( 'position', new THREE.BufferAttribute( positions, 3 ) );
+	geometry.addAttribute( 'color', new THREE.BufferAttribute( colors, 3 ) );
+  
+	// line
+	var line = new THREE.Line( geometry, lineMaterial );
+  
+	return line;
+  
+  }
+  
+  /* COLORS */			 
+  function makeColorGradient ( i, frequency, phase ) {  
+  
+	var center = 128;
+	var width = 127;
+	  
+	var redFrequency, grnFrequency, bluFrequency;
+	   grnFrequency = bluFrequency = redFrequency = frequency;
+	
+	var phase2 = phase + 2;
+	var phase3 = phase + 4;
+  
+	var red   = Math.sin( redFrequency * i + phase ) * width + center;
+	var green = Math.sin( grnFrequency * i + phase2 ) * width + center;
+	var blue  = Math.sin( bluFrequency * i + phase3 ) * width + center;
+  
+	return parseInt( '0x' + _byte2Hex( red ) + _byte2Hex( green ) + _byte2Hex( blue ) );
+  }
+  
+  function _byte2Hex (n) {
+	var nybHexString = "0123456789ABCDEF";
+	return String( nybHexString.substr( ( n >> 4 ) & 0x0F, 1 ) ) + nybHexString.substr( n & 0x0F, 1 );
+  }
+  
