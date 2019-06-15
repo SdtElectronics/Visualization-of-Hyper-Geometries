@@ -15,7 +15,7 @@ document.getElementById("rotate").onclick = e => {
     controls.autoRotate = !controls.autoRotate;
 };
 
-document.getElementById("spin").onclick = () => {
+document.getElementById("spin").onclick = e => {
     if(animate.r)
         e.target.firstChild.innerText = "rotate objects";
     else
@@ -47,7 +47,6 @@ function initModel() {
 
     const gridXY = new THREE.GridHelper(5000, 50, 0xEED5B7, 0xEED5B7);
     gridXY.position.set( 0,0,0 );
-    gridXY.rotation.x = Math.PI / 2;
     scene.add(gridXY);
 
 } 
