@@ -22,6 +22,7 @@ body > div{
     background-color: rgba(102, 232, 255, 0.6);
     color: #E7F7FF;
     text-shadow: 0px 0px 1.5px #002B49;
+    display: flex;
 }
 .btn:hover{
     background-color: rgba(102, 232, 255, 0.8);

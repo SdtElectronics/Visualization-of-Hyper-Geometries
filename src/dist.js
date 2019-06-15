@@ -1,9 +1,29 @@
-const renderer = new THREE.WebGLRenderer({antialias:true}); 
-const camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 1, 10000); 
-const scene = new THREE.Scene(); 
-const light = new THREE.DirectionalLight(0xffffff); 
-const stats = new Stats();
-const controls = new THREE.OrbitControls( camera, renderer.domElement ); 
+const renderer = new THREE.WebGLRenderer({antialias:true}), 
+      camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 1, 10000), 
+      scene = new THREE.Scene(), 
+      light = new THREE.DirectionalLight(0xffffff), 
+      stats = new Stats(),
+      controls = new THREE.OrbitControls( camera, renderer.domElement ); 
+
+animate.r = false;
+
+document.getElementById("rotate").onclick = e => {
+    if(controls.autoRotate)
+        e.target.firstChild.innerText = "rotate horizon";
+    else
+        e.target.firstChild.innerText = "fix horizon";
+    controls.autoRotate = !controls.autoRotate;
+};
+
+document.getElementById("spin").onclick = () => {
+    if(animate.r)
+        e.target.firstChild.innerText = "rotate objects";
+    else
+        e.target.firstChild.innerText = "fix objects";
+    animate.r = !animate.r;
+};
+
+document.getElementById("cls").onclick = () => geomBase.purge();
 
 document.onload = draw();
 
@@ -26,7 +46,8 @@ function initLight() {
 function initModel() { 
 
     const gridXY = new THREE.GridHelper(5000, 50, 0xEED5B7, 0xEED5B7);
-    gridXY.position.set( 0,0,0 )
+    gridXY.position.set( 0,0,0 );
+    gridXY.rotation.x = Math.PI / 2;
     scene.add(gridXY);
 
 } 
@@ -36,9 +57,7 @@ function initStats() {
 } 
 
 function initControls() { 
-    
-    // 如果使用animate方法时，将此函数删除 
-    //controls.addEventListener( 'change', render ); 
+
     // 使动画循环使用时阻尼或自转 意思是否有惯性 
     controls.enableDamping = true; 
     //动态阻尼系数 就是鼠标拖拽旋转灵敏度 
@@ -46,7 +65,7 @@ function initControls() {
     //是否可以缩放 
     controls.enableZoom = true; 
     //是否自动旋转 
-    controls.autoRotate = false; 
+    //controls.autoRotate = false; 
     //设置相机距离原点的最远距离 
     controls.minDistance = 200; 
     //设置相机距离原点的最远距离 
@@ -73,8 +92,8 @@ function onWindowResize() {
     
 
 function animate() { 
-
-    geomBase.update();
+    if(animate.r)
+        geomBase.update();
     controls.update(); 
     render(); 
     stats.update(); 

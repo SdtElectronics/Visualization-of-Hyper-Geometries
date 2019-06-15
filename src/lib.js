@@ -22,7 +22,7 @@ geomBase.update = (angularSpeed = 0.1) => {
     let timeDiff = time - geomBase.lastTime;
 	let angleChange = angularSpeed * timeDiff * 2 * Math.PI / 750;
 	geomBase.geomLst.forEach(e => {
-		if(!!e.spin)
+		if(!!(e.spin[0]))
 			e.update(angleChange);
 	});
 	geomBase.lastTime = time;
@@ -448,7 +448,7 @@ class hilbertCurve extends geomBase{
 	destructor(){
 		this.line.geometry.dispose();
 		this.line.material.dispose();
-		scene.remove(e);
+		scene.remove(line);
 	}
 }
 
