@@ -34,16 +34,6 @@ geomBase.proj = (dot, dist) => {
 	return dot.map(val => val * factor);
 };
 
-geomBase.spin = (dot, rad) => {
-	const dim = dot.length - 1;
-	const I = math.identity(dim + 1).valueOf();
-
-	[I[dim - 1][dim -1], I[dim - 1][dim]] = [Math.cos(rad), Math.sin(rad)];
-	[I[dim][dim -1], I[dim][dim]] = [-Math.sin(rad), Math.cos(rad)];
-	const ret = math.multiply(I, dot).valueOf();
-	return ret;
-};
-
 geomBase.rotateM = (dim, cords, rads) => {
 	let J = math.identity(dim--).valueOf();
 	cords.forEach((cord, i) => {
@@ -55,14 +45,19 @@ geomBase.rotateM = (dim, cords, rads) => {
 	return J;
 }
 
+geomBase.purge = () => {
+	geomBase.geomLst.forEach(e => e.destructor());
+	geomBase.geomLst = [];
+};
+
 geomBase.combNum = dim => k_combinations(new Array(dim).fill(0).map((e, index) => index), 2);
 
 
 class hyperCube extends geomBase{
-	constructor(dim, dims, offset = null, rotation = null, spin, projType = true){
+	constructor(dim, dims = null, offset = null, rotation = null, spin = [], projType = true){
 		super();
 		this.dim = dim;
-		this.spin = !!spin ? spin : Array(dim).fill(false);
+		this.spin = spin;
 		this.dims = !!dims ? dims : Array(dim).fill(30);
 		this.projType = projType;
 		this.surf = this.baseSurf(dim);
@@ -171,7 +166,7 @@ class hyperCube extends geomBase{
 			});
 		}
 		this.projSurf();
-		this.proj.forEach((arr, index) => {
+		this.proj.forEach((arr) => {
 			const vertices = arr.map(ele => {
 				return new THREE.Vector3(...ele);
 			});
@@ -235,6 +230,19 @@ class hyperCube extends geomBase{
 			});
 		}
 	}
+
+	destructor(){
+		this.mesh.forEach(e => {
+			e.children[0].geometry.dispose();
+			e.children[0].material.dispose();
+			scene.remove(e);
+		});
+		this.lines.flat().forEach(e => {
+			e.geometry.dispose();
+			e.material.dispose();
+			scene.remove(e);
+		});
+	}
 }
 
 class simplex4 extends geomBase{
@@ -257,10 +265,10 @@ class simplex4 extends geomBase{
 	baseSurf(){
 		const z = 1 / Math.sqrt(5);
 		let vertices = [[1, 1, 1, -z], 
-						  [1, -1, -1, -z], 
-						  [-1, 1, -1, -z],
-						  [-1, -1, 1, -z],
-						  [0, 0, 0, 1 / z - z]];
+						[1, -1, -1, -z], 
+						[-1, 1, -1, -z],
+						[-1, -1, 1, -z],
+						[0, 0, 0, 1 / z - z]];
 		if(!!this.dims){
 			let I = math.identity(4).valueOf();
 			I = I.map((e, index) => {
@@ -376,6 +384,19 @@ class simplex4 extends geomBase{
 			});
 		}
 	}
+
+	destructor(){
+		this.mesh.forEach(e => {
+			e.children[0].geometry.dispose();
+			e.children[0].material.dispose();
+			scene.remove(e);
+		});
+		this.lines.flat().forEach(e => {
+			e.geometry.dispose();
+			e.material.dispose();
+			scene.remove(e);
+		});
+	}
 }
 
 class hilbertCurve extends geomBase{
@@ -409,7 +430,6 @@ class hilbertCurve extends geomBase{
 				const  curr = cur[3];
 				return pre > curr ? pre : curr;
 			});
-			//console.log(dist);
 			this.proj = this.Vecs.map(dot => geomBase.proj(dot, dist));
 		}else{
 			this.proj = this.Vecs.map(dot => dot.slice(0,3));
@@ -424,8 +444,13 @@ class hilbertCurve extends geomBase{
 		
 		this.line = new getColoredBufferLine( 0.2, 1.5, geometry );
 	}
-}
 
+	destructor(){
+		this.line.geometry.dispose();
+		this.line.material.dispose();
+		scene.remove(e);
+	}
+}
 
 function toRad (deg){
 	return deg / 180 * Math.PI;
