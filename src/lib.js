@@ -2,7 +2,15 @@
 class geomBase{
 	constructor(){
 		geomBase.geomLst.push(this);
-		
+		this.lines = [];
+		this.proj = [];
+	}
+	destructor(){
+		this.lines.forEach(e => {
+			e.geometry.dispose();
+			e.material.dispose();
+			scene.remove(e);
+		});
 	}
 }
 
@@ -17,13 +25,49 @@ geomBase.materials = [
 ];   
 geomBase.mat = new THREE.LineBasicMaterial( { color: 0xffffff, linewidth: 6 } );
 
+geomBase.drawFace = (arr, faces = []) => {
+	const geom = new THREE.Geometry();
+	geomBase.updateFace(arr, geom, faces);
+	return THREE.SceneUtils.createMultiMaterialObject(geom, geomBase.materials);
+};
+
+geomBase.drawLine = (dots, ord = null) => {
+	const geometry = new THREE.Geometry();
+	geomBase.updateLine(dots, geometry, ord);
+	return new THREE.Line(geometry, geomBase.mat);
+} 
+
+geomBase.updateFace = (arr, face, faces = []) => {
+	const vertices = arr.map(ele => new THREE.Vector3(...ele));
+	if(!!!faces[0])
+		Array(--arr.length).fill(0).map((e, index) => ++index).reduce((pre, cur) => {
+			faces.push(new THREE.Face3(0, pre, cur));
+			return cur;
+		});
+	face.vertices = vertices;
+	face.faces = faces;
+	face.computeFaceNormals(); 
+	face.elementsNeedUpdate = true;
+	face.normalsNeedUpdate = true;
+	face.verticesNeedUpdate = true;
+}
+
+geomBase.updateLine = (dots, line, ord = null) => {
+	if(!!ord)
+		dots = ord.map(e => dots[e])
+	dots.map((ele, i) => {
+		line.vertices[i] = new THREE.Vector3(...ele);
+	});
+	line.verticesNeedUpdate = true;
+};
+
 geomBase.update = (angularSpeed = 0.1) => {
 	let time = (new Date()).getTime();
     let timeDiff = time - geomBase.lastTime;
 	let angleChange = angularSpeed * timeDiff * 2 * Math.PI / 750;
 	geomBase.geomLst.forEach(e => {
 		if(!!(e.spin[0]))
-			e.update(angleChange);
+			e.update(angleChange, null, e.faceOrd);
 	});
 	geomBase.lastTime = time;
 }
@@ -52,23 +96,108 @@ geomBase.purge = () => {
 
 geomBase.combNum = dim => k_combinations(new Array(dim).fill(0).map((e, index) => index), 2);
 
-
-class hyperCube extends geomBase{
-	constructor(dim, dims = null, offset = null, rotation = null, spin = [], projType = true){
+class multiFaceGeom extends geomBase{
+	constructor(spin, projType){
 		super();
-		this.dim = dim;
 		this.spin = spin;
-		this.dims = !!dims ? dims : Array(dim).fill(30);
 		this.projType = projType;
-		this.surf = this.baseSurf(dim);
-		this.proj = [];
 		this.mesh = [];
-		this.lines = [];
+	}
+
+	projSurf(type){
+		if(type){
+			const dist = this.surf.flat().reduce((pre, cur) => {
+				const  curr = cur[3];
+				return pre > curr ? pre : curr;
+			});
+			this.proj = this.surf.map(vertices => {
+				return vertices.map(dot => geomBase.proj(dot, dist));
+			});
+		}else{
+			this.proj = this.surf.map(vertices => {
+				return vertices.map(dot => dot.slice(0,3));
+			});
+		}
+	}
+
+	movProj(offset){
+		this.proj = this.proj.map(vertices => {
+			return vertices.map(dot => {
+				return math.add(dot, offset).valueOf();
+			})
+		});
+	}
+
+	initFace(r, face){
+		if(!!r){
+			this.surf = this.surf.map(vertices => {
+				const spin = r.map(e => e.slice(0,2));
+				const angle = r.map(e => e.slice(2,3));
+				return vertices.map(dot => {
+					return math.multiply(geomBase.rotateM(this.dim, spin, angle), dot);
+				});
+			});
+		}
+		this.projSurf();
+		this.proj.forEach(arr => {
+			this.mesh.push(geomBase.drawFace(arr, face));
+			this.lines.push(geomBase.drawLine(arr.concat([arr[0]])));
+		});
+	}
+
+	updateFace(arr, index, face){
+		geomBase.updateFace(arr, this.mesh[index].children[0].geometry, face);
+		geomBase.updateLine(arr.concat([arr[0]]), this.lines[index].geometry);
+	}
+
+	update(angleChange, offset, face){
+		if(!!angleChange)
+			this.surf = this.surf.map(vertices => {
+				return vertices.map(dot => {
+					const r = this.spin.concat().fill(angleChange);
+					return math.multiply(geomBase.rotateM(this.dim, this.spin, r), dot);
+				});
+			});
+		if(!!angleChange || !!offset){
+			this.projSurf(this.projType);
+			if(!!offset){
+				this.movProj(offset);
+				this.offset = offset;
+			}else{
+				this.movProj(this.offset);
+			}
+			this.proj.forEach((arr, index) => {
+				this.updateFace(arr, index, face);
+			});
+		}
+	}
+
+	destructor(){
+		this.mesh.forEach(e => {
+			e.children[0].geometry.dispose();
+			e.children[0].material.dispose();
+			scene.remove(e);
+		});
+		this.lines.forEach(e => {
+			e.geometry.dispose();
+			e.material.dispose();
+			scene.remove(e);
+		});
+	}
+}
+
+class hyperCube extends multiFaceGeom{
+	constructor(dim, dims = null, offset = null, rotation = null, spin = [], projType = true){
+		super(spin, projType);
+		this.dim = dim;
+		this.dims = !!dims ? dims : Array(dim).fill(30);
+		this.surf = this.baseSurf(dim);
 		this.movSurf();
 		this.extSurf();
-		this.initPara(rotation);
-		this.update(null, !!offset ? offset : [0, 0, 0]);
-		this.lines.flat().forEach(e => scene.add(e));
+		this.faceOrd = [new THREE.Face3(0, 1, 2), new THREE.Face3(0, 2, 3)];
+		this.initFace(rotation, this.faceOrd);
+		this.update(null, !!offset ? offset : [0, 0, 0], this.faceOrd);
+		this.lines.forEach(e => scene.add(e));
 		this.mesh.forEach(e => scene.add(e));
 	}
 
@@ -83,9 +212,7 @@ class hyperCube extends geomBase{
 		return k_combinations(I, 2).map(e => {
 			const vertices = [];
 			vertices.push(math.zeros(dim).valueOf());
-			vertices.push(e[0]);
-			vertices.push(e[1]);
-			vertices.push(math.add(e[0],e[1]).valueOf());
+			vertices.push(e[0], math.add(e[0],e[1]).valueOf(),e[1]);
 			vertices.co = [e[0].findIndex(e => e > 0), 
 						   e[1].findIndex(e => e > 0)];
 			return vertices;
@@ -126,139 +253,18 @@ class hyperCube extends geomBase{
 			});
 		});	
 	}
-
-	projSurf(type){
-		if(type){
-			const dist = this.surf.flat().reduce((pre, cur) => {
-				const  curr = cur[3];
-				return pre > curr ? pre : curr;
-			});
-			this.proj = this.surf.map(vertices => {
-				return vertices.map(dot => {
-					return geomBase.proj(dot, dist);
-				});
-			});
-		}else{
-			this.proj = this.surf.map(vertices => {
-				return vertices.map(dot => {
-					return dot.slice(0,3);
-				});
-			});
-		}
-	}
-
-	movProj(offset){
-		this.proj = this.proj.map(vertices => {
-			return vertices.map(dot => {
-				return math.add(dot, offset).valueOf();
-			})
-		});
-	}
-
-	initPara(r){
-		if(!!r){
-			this.surf = this.surf.map(vertices => {
-				const spin = r.map(e => e.slice(0,2));
-				const angle = r.map(e => e.slice(2,3));
-				return vertices.map(dot => {
-					return math.multiply(geomBase.rotateM(this.dim, spin, angle), dot);
-				});
-			});
-		}
-		this.projSurf();
-		this.proj.forEach((arr) => {
-			const vertices = arr.map(ele => {
-				return new THREE.Vector3(...ele);
-			});
-			const faces = [new THREE.Face3(0, 1, 2), new THREE.Face3(1, 2, 3)];
-			const geom = new THREE.Geometry();
-			geom.vertices = vertices;
-			geom.faces = faces;
-			geom.computeFaceNormals(); 
-			this.mesh.push(THREE.SceneUtils.createMultiMaterialObject(geom, geomBase.materials));
-			const lineBuf = [];
-			vertices.slice(0, 2).concat(vertices[3], vertices[2], vertices[0]).reduce((pre, cur) => {
-				const geometry = new THREE.Geometry();
-				geometry.vertices.push(pre, cur);
-				lineBuf.push (new THREE.Line(geometry, geomBase.mat));
-				return cur;
-			});
-			this.lines.push(lineBuf);
-		});
-	}
-	
-	updatePara(arr, index){
-		const vertices = arr.map(ele => {
-			return new THREE.Vector3(...ele);
-		});
-		const faces = [new THREE.Face3(0, 1, 2), new THREE.Face3(1, 2, 3)];
-		const geom = this.mesh[index].children[0];
-		geom.geometry.vertices = vertices;
-		geom.geometry.faces = faces;
-		geom.geometry.computeFaceNormals(); 
-		geom.geometry.elementsNeedUpdate = true;
-		geom.geometry.normalsNeedUpdate = true;
-		geom.geometry.verticesNeedUpdate = true;
-		vertices.slice(0, 2).concat(vertices[3], vertices[2], vertices[0]).reduce((pre, cur, i) => {
-			const line = this.lines[index][i - 1];
-			line.geometry.vertices[0] = pre;
-			line.geometry.vertices[1] = cur;
-			line.geometry.verticesNeedUpdate = true;
-			return cur;
-		})
-	}
-
-	update(angleChange, offset){
-		if(!!angleChange)
-			this.surf = this.surf.map(vertices => {
-				return vertices.map(dot => {
-					const r = this.spin.concat().fill(angleChange);
-					return math.multiply(geomBase.rotateM(this.dim, this.spin, r), dot);
-				});
-			});
-		if(!!angleChange || !!offset){
-			this.projSurf(this.projType);
-			if(!!offset){
-				this.movProj(offset);
-				this.offset = offset;
-			}else{
-				this.movProj(this.offset);
-			}
-
-			this.proj.forEach((arr, index) => {
-				this.updatePara(arr, index);
-			});
-		}
-	}
-
-	destructor(){
-		this.mesh.forEach(e => {
-			e.children[0].geometry.dispose();
-			e.children[0].material.dispose();
-			scene.remove(e);
-		});
-		this.lines.flat().forEach(e => {
-			e.geometry.dispose();
-			e.material.dispose();
-			scene.remove(e);
-		});
-	}
 }
 
-class simplex4 extends geomBase{
+class simplex4 extends multiFaceGeom{
 	constructor(dims, offset = null, rotation = null, spin, projType = true){
-		super();
+		super(spin, projType);
 		this.dim = 4;
-		this.spin = !!spin ? spin : Array(dim).fill(false);
 		this.dims = !!dims ? dims : Array(dim).fill(30);
-		this.projType = projType;
 		this.surf = this.baseSurf();
-		this.proj = [];
-		this.mesh = [];
-		this.lines = [];
-		this.initTri(rotation);
-		this.update(null, !!offset ? offset : [0, 0, 0]);
-		this.lines.flat().forEach(e => scene.add(e));
+		this.faceOrd = [new THREE.Face3(0, 1, 2)];
+		this.initFace(rotation, this.faceOrd);
+		this.update(null, !!offset ? offset : [0, 0, 0], this.faceOrd);
+		this.lines.forEach(e => scene.add(e));
 		this.mesh.forEach(e => scene.add(e));
 	}
 
@@ -280,123 +286,6 @@ class simplex4 extends geomBase{
 		}	
 		return k_combinations(vertices, 3);
 	}
-
-	projSurf(type){
-		if(type){
-			const dist = this.surf.flat().reduce((pre, cur) => {
-				const  curr = cur[3];
-				return pre > curr ? pre : curr;
-			});
-			this.proj = this.surf.map(vertices => {
-				return vertices.map(dot => {
-					return geomBase.proj(dot, dist);
-				});
-			});
-		}else{
-			this.proj = this.surf.map(vertices => {
-				return vertices.map(dot => {
-					return dot.slice(0,3);
-				});
-			});
-		}
-	}
-
-	movProj(offset){
-		this.proj = this.proj.map(vertices => {
-			return vertices.map(dot => {
-				return math.add(dot, offset).valueOf();
-			})
-		});
-	}
-
-	initTri(r){
-		if(!!r){
-			this.surf = this.surf.map(vertices => {
-				const spin = r.map(e => e.slice(0,2));
-				const angle = r.map(e => e.slice(2,3));
-				return vertices.map(dot => {
-					return math.multiply(geomBase.rotateM(this.dim, spin, angle), dot);
-				});
-			});
-		}
-		this.projSurf();
-		this.proj.forEach(arr => {
-			const vertices = arr.map(ele => {
-				return new THREE.Vector3(...ele);
-			});
-			const faces = [new THREE.Face3(0, 1, 2)];
-			const geom = new THREE.Geometry();
-			geom.vertices = vertices;
-			geom.faces = faces;
-			geom.computeFaceNormals(); 
-			this.mesh.push(THREE.SceneUtils.createMultiMaterialObject(geom, geomBase.materials));
-			const lineBuf = [];
-			vertices.concat(vertices[0]).reduce((pre, cur) => {
-				const geometry = new THREE.Geometry();
-				geometry.vertices.push(pre, cur);
-				lineBuf.push (new THREE.Line(geometry, geomBase.mat));
-				return cur;
-			});
-			this.lines.push(lineBuf);
-		});
-	}
-	
-	updateTri(arr, index){
-		const vertices = arr.map(ele => {
-			return new THREE.Vector3(...ele);
-		});
-		const faces = [new THREE.Face3(0, 1, 2)];
-		const geom = this.mesh[index].children[0];
-		geom.geometry.vertices = vertices;
-		geom.geometry.faces = faces;
-		geom.geometry.computeFaceNormals(); 
-		geom.geometry.elementsNeedUpdate = true;
-		geom.geometry.normalsNeedUpdate = true;
-		geom.geometry.verticesNeedUpdate = true;
-		vertices.concat(vertices[0]).reduce((pre, cur, i) => {
-			const line = this.lines[index][i - 1];
-			line.geometry.vertices[0] = pre;
-			line.geometry.vertices[1] = cur;
-			line.geometry.verticesNeedUpdate = true;
-			return cur;
-		})
-	}
-
-	update(angleChange, offset){
-		if(!!angleChange)
-			this.surf = this.surf.map(vertices => {
-				return vertices.map(dot => {
-					const r = this.spin.concat().fill(angleChange);
-					return math.multiply(geomBase.rotateM(this.dim, this.spin, r), dot);
-				});
-			});
-		if(!!angleChange || !!offset){
-			this.projSurf(this.projType);
-			if(!!offset){
-				this.movProj(offset);
-				this.offset = offset;
-			}else{
-				this.movProj(this.offset);
-			}
-
-			this.proj.forEach((arr, index) => {
-				this.updateTri(arr, index);
-			});
-		}
-	}
-
-	destructor(){
-		this.mesh.forEach(e => {
-			e.children[0].geometry.dispose();
-			e.children[0].material.dispose();
-			scene.remove(e);
-		});
-		this.lines.flat().forEach(e => {
-			e.geometry.dispose();
-			e.material.dispose();
-			scene.remove(e);
-		});
-	}
 }
 
 class hilbertCurve extends geomBase{
@@ -407,7 +296,6 @@ class hilbertCurve extends geomBase{
 		this.orders = orders;
 		this.uLength = uLength;
 		this.projType = projType;
-		this.proj = [];
 		this.Vecs = this.baseVec();
 		this.movVec();
 		this.initVec();
@@ -438,17 +326,11 @@ class hilbertCurve extends geomBase{
 	initVec(){
 		this.projVec(this.projType);
 		const geometry = new THREE.Geometry();
-		this.proj.map(ele => {
+		this.proj.forEach(ele => {
 			geometry.vertices.push(new THREE.Vector3(...ele));
 		});
-		
-		this.line = new getColoredBufferLine( 0.2, 1.5, geometry );
-	}
-
-	destructor(){
-		this.line.geometry.dispose();
-		this.line.material.dispose();
-		scene.remove(line);
+		this.line = new getColoredBufferLine( 0.2, 1.5, geometry);
+		this.lines.push(this.line);
 	}
 }
 
