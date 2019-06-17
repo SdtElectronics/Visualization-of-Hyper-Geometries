@@ -5,6 +5,7 @@ class geomBase{
 		this.lines = [];
 		this.proj = [];
 	}
+
 	destructor(){
 		this.lines.forEach(e => {
 			e.geometry.dispose();
@@ -37,6 +38,12 @@ geomBase.drawLine = (dots, ord = null) => {
 	return new THREE.Line(geometry, geomBase.mat);
 } 
 
+geomBase.drawArr = (dot, color = 0xffffff) => {
+	const geometry = new THREE.ArrowHelper();
+	geomBase.updateArr(dot, geometry, color);
+	return geometry;
+} 
+
 geomBase.updateFace = (arr, face, faces = []) => {
 	const vertices = arr.map(ele => new THREE.Vector3(...ele));
 	if(!!!faces[0])
@@ -59,6 +66,16 @@ geomBase.updateLine = (dots, line, ord = null) => {
 		line.vertices[i] = new THREE.Vector3(...ele);
 	});
 	line.verticesNeedUpdate = true;
+};
+
+geomBase.updateArr = (dot, geometry, color = null) => {
+	const ori = new THREE.Vector3(...dot[0]);
+	const vec = new THREE.Vector3(...dot[1]);
+	geometry.position.set(ori);
+	geometry.setDirection(vec.normalize());
+	geometry.setLength(vec.length());
+	if(!!color)
+		geometry.setColor(color);
 };
 
 geomBase.update = (angularSpeed = 0.1) => {
@@ -122,9 +139,7 @@ class multiFaceGeom extends geomBase{
 
 	movProj(offset){
 		this.proj = this.proj.map(vertices => {
-			return vertices.map(dot => {
-				return math.add(dot, offset).valueOf();
-			})
+			return vertices.map(dot => math.add(dot, offset).valueOf());
 		});
 	}
 
@@ -256,7 +271,7 @@ class hyperCube extends multiFaceGeom{
 }
 
 class simplex4 extends multiFaceGeom{
-	constructor(dims, offset = null, rotation = null, spin, projType = true){
+	constructor(dims, offset = null, rotation = null, spin = [], projType = true){
 		super(spin, projType);
 		this.dim = 4;
 		this.dims = !!dims ? dims : Array(dim).fill(30);
@@ -292,10 +307,11 @@ class hilbertCurve extends geomBase{
 	constructor(dim, orders, uLength = 30, projType = false){
 		super();
 		this.dim = dim;
-		this.hil = Module.cwrap("hilbert", "[number]", ["number", "number", "number"]);
+		this.hil = Module.cwrap("hilbert", "number", ["number", "number", "number"]);
 		this.orders = orders;
 		this.uLength = uLength;
 		this.projType = projType;
+		this.spin = [];
 		this.Vecs = this.baseVec();
 		this.movVec();
 		this.initVec();
@@ -304,8 +320,8 @@ class hilbertCurve extends geomBase{
 	baseVec(){
 		const ord = (this.orders + 1) ** this.dim;
 		return Array(ord).fill(Array(this.dim).fill(0)).map((e, i) => {
-			const value = this.hil(this.dim, ord, i);
-			return e.map((c, index) => this.uLength * getValue(value + index * 4, 'i32'));
+			const p = this.hil(this.dim, ord, i);
+			return e.map((c, index) => this.uLength * Module.getValue(p + index * 4,'i32'));
 		});
 	}
 	movVec(){
@@ -334,8 +350,142 @@ class hilbertCurve extends geomBase{
 	}
 }
 
+class ndArr extends geomBase{
+	constructor(dim, vec, spin = [], projType = false){
+		super();
+		this.dim = dim;
+		this.Vecs = vec;
+		this.spin = spin;
+		this.projType = projType;
+		this.projVec(vec);
+
+	}
+
+	projVec(type){
+		if(type){
+			const dist = this.Vecs.reduce((pre, cur) => {
+				const  curr = cur[1][3];
+				return pre > curr ? pre : curr;
+			});
+			this.proj = this.Vecs.map(dot => {
+				dot[0] = dot[0].slice(0,3);
+				dot[1] = geomBase.proj(dot[1], dist);
+				return dot;
+			});
+		}else{
+			this.proj = this.Vecs.map(dot => {
+				dot[0] = dot[0].slice(0,3);
+				dot[1] = dot[1].slice(0,3);
+				return dot;
+			});
+		}
+	}
+
+	initArr(){
+		this.projVec(this.projType);
+		this.arrs = this.proj.map((vec, i) => {
+			return geomBase.drawArr(this.proj, this.Vecs[i][1].concat().pop());
+		});
+	}
+
+	updateArr(arr, index){
+		geomBase.updateArr(arr, this.arrs[index], this.Vecs[index][1].concat().pop());
+	}
+
+	update(angleChange, arr){
+		if(!!arr){
+			this.Vecs = arr;
+		}
+		if(!!angleChange)
+			this.Vecs = this.Vecs.map(dots => {
+				return dots.map(dot => {
+					const r = this.spin.concat().fill(angleChange);
+					const color = dot[1].pop();
+					dot[1] = math.multiply(geomBase.rotateM(this.dim, this.spin, r), dot[1]);
+					dot[0] = math.multiply(geomBase.rotateM(this.dim, this.spin, r), dot[0]);
+					dot[1].push(color);
+					return [dot[0], dot[1]];
+				});
+			});
+		this.projVec(this.projType);
+		this.proj.forEach((arr, index) => {
+			this.updateArr(arr, index);
+		});
+
+	}
+
+	updateFunc(param){
+		this.Vecs = this.func.update(param);
+	}
+}
+
+ndArr.fromFunc = (expr, initVal, initPara, steps, stepLen = 1, 
+												  dim = null, 
+												  spin = null, 
+												  projType = true, 
+												  specColor = false) => {
+	if(!specColor){
+		dim = expr.length;
+		const rainbow = new Rainbow();
+		rainbow.setSpectrum("blue", "red");
+		rainbow.setNumberRange(0, Math.sqrt((steps * stepLen / 2) ** 2));
+		expr.push((dims => {
+			this.colourAt(math.norm(dims));
+		}).bind(rainbow));
+	}
+	const func = new ndVecFunc(expr, initVal, initPara, steps, stepLen = 1, dim);
+	const ret =  new ndArr(dim, func, spin, projType);
+	ret.func = func;
+	return ret;
+}
+
+
+
+class ndVecFunc extends Array{
+	constructor(expr, initVal, initPara, steps, stepLen = 1, dim = null){
+		super();
+		this.expr = expr;
+		this.initVal = initVal;
+		this.steps = steps;
+		this.stepLen = stepLen;
+		this.dim = !!dim ? dim : expr.length;
+		permute(Array(this.dim).fill(Array(steps).fill(0).map(() => initVal += stepLen))).forEach(val => {
+			const vect = [];
+			expr.forEach((exp, i) => vect.push(exp(val[i], ...initPara)));
+			this.push([val, vect]);
+		})
+	}
+
+	update(para){
+		permute(Array(this.expr.length).fill(Array(this.steps).fill(0).map(() => 
+			this.initVal += this.stepLen))).forEach((val, index) => {
+			expr.forEach((exp, i) => this[index][1][i] = exp(val[i], ...para));
+		})
+		return this;
+	}
+}
+
 function toRad (deg){
 	return deg / 180 * Math.PI;
+}
+
+function permute(input) {
+  var out = [];
+
+  (function permute_r(input, current) {
+    if (input.length === 0) {
+      out.push(current);
+      return;
+    }
+
+    var next = input.slice(1);
+
+    for (var i = 0, n = input[0].length; i != n; ++i) {
+      permute_r(next, current.concat([input[0][i]]));
+    }
+  }(input, []));
+
+  return out;
 }
 
 function k_combinations(set, k) {
@@ -478,3 +628,307 @@ function changeColor( line, options ) {
 	return String( nybHexString.substr( ( n >> 4 ) & 0x0F, 1 ) ) + nybHexString.substr( n & 0x0F, 1 );
   }
   
+  /*
+RainbowVis-JS 
+Released under Eclipse Public License - v 1.0
+*/
+
+function Rainbow()
+{
+	"use strict";
+	var gradients = null;
+	var minNum = 0;
+	var maxNum = 100;
+	var colours = ['ff0000', 'ffff00', '00ff00', '0000ff']; 
+	setColours(colours);
+	
+	function setColours (spectrum) 
+	{
+		if (spectrum.length < 2) {
+			throw new Error('Rainbow must have two or more colours.');
+		} else {
+			var increment = (maxNum - minNum)/(spectrum.length - 1);
+			var firstGradient = new ColourGradient();
+			firstGradient.setGradient(spectrum[0], spectrum[1]);
+			firstGradient.setNumberRange(minNum, minNum + increment);
+			gradients = [ firstGradient ];
+			
+			for (var i = 1; i < spectrum.length - 1; i++) {
+				var colourGradient = new ColourGradient();
+				colourGradient.setGradient(spectrum[i], spectrum[i + 1]);
+				colourGradient.setNumberRange(minNum + increment * i, minNum + increment * (i + 1)); 
+				gradients[i] = colourGradient; 
+			}
+
+			colours = spectrum;
+		}
+	}
+
+	this.setSpectrum = function () 
+	{
+		setColours(arguments);
+		return this;
+	}
+
+	this.setSpectrumByArray = function (array)
+	{
+		setColours(array);
+		return this;
+	}
+
+	this.colourAt = function (number)
+	{
+		if (isNaN(number)) {
+			throw new TypeError(number + ' is not a number');
+		} else if (gradients.length === 1) {
+			return gradients[0].colourAt(number);
+		} else {
+			var segment = (maxNum - minNum)/(gradients.length);
+			var index = Math.min(Math.floor((Math.max(number, minNum) - minNum)/segment), gradients.length - 1);
+			return gradients[index].colourAt(number);
+		}
+	}
+
+	this.colorAt = this.colourAt;
+
+	this.setNumberRange = function (minNumber, maxNumber)
+	{
+		if (maxNumber > minNumber) {
+			minNum = minNumber;
+			maxNum = maxNumber;
+			setColours(colours);
+		} else {
+			throw new RangeError('maxNumber (' + maxNumber + ') is not greater than minNumber (' + minNumber + ')');
+		}
+		return this;
+	}
+}
+
+function ColourGradient() 
+{
+	"use strict";
+	var startColour = 'ff0000';
+	var endColour = '0000ff';
+	var minNum = 0;
+	var maxNum = 100;
+
+	this.setGradient = function (colourStart, colourEnd)
+	{
+		startColour = getHexColour(colourStart);
+		endColour = getHexColour(colourEnd);
+	}
+
+	this.setNumberRange = function (minNumber, maxNumber)
+	{
+		if (maxNumber > minNumber) {
+			minNum = minNumber;
+			maxNum = maxNumber;
+		} else {
+			throw new RangeError('maxNumber (' + maxNumber + ') is not greater than minNumber (' + minNumber + ')');
+		}
+	}
+
+	this.colourAt = function (number)
+	{
+		return calcHex(number, startColour.substring(0,2), endColour.substring(0,2)) 
+			+ calcHex(number, startColour.substring(2,4), endColour.substring(2,4)) 
+			+ calcHex(number, startColour.substring(4,6), endColour.substring(4,6));
+	}
+	
+	function calcHex(number, channelStart_Base16, channelEnd_Base16)
+	{
+		var num = number;
+		if (num < minNum) {
+			num = minNum;
+		}
+		if (num > maxNum) {
+			num = maxNum;
+		} 
+		var numRange = maxNum - minNum;
+		var cStart_Base10 = parseInt(channelStart_Base16, 16);
+		var cEnd_Base10 = parseInt(channelEnd_Base16, 16); 
+		var cPerUnit = (cEnd_Base10 - cStart_Base10)/numRange;
+		var c_Base10 = Math.round(cPerUnit * (num - minNum) + cStart_Base10);
+		return formatHex(c_Base10.toString(16));
+	}
+
+	function formatHex(hex) 
+	{
+		if (hex.length === 1) {
+			return '0' + hex;
+		} else {
+			return hex;
+		}
+	} 
+	
+	function isHexColour(string)
+	{
+		var regex = /^#?[0-9a-fA-F]{6}$/i;
+		return regex.test(string);
+	}
+
+	function getHexColour(string)
+	{
+		if (isHexColour(string)) {
+			return string.substring(string.length - 6, string.length);
+		} else {
+			var name = string.toLowerCase();
+			if (colourNames.hasOwnProperty(name)) {
+				return colourNames[name];
+			}
+			throw new Error(string + ' is not a valid colour.');
+		}
+	}
+	
+	// Extended list of CSS colornames s taken from
+	// http://www.w3.org/TR/css3-color/#svg-color
+	var colourNames = {
+		aliceblue: "F0F8FF",
+		antiquewhite: "FAEBD7",
+		aqua: "00FFFF",
+		aquamarine: "7FFFD4",
+		azure: "F0FFFF",
+		beige: "F5F5DC",
+		bisque: "FFE4C4",
+		black: "000000",
+		blanchedalmond: "FFEBCD",
+		blue: "0000FF",
+		blueviolet: "8A2BE2",
+		brown: "A52A2A",
+		burlywood: "DEB887",
+		cadetblue: "5F9EA0",
+		chartreuse: "7FFF00",
+		chocolate: "D2691E",
+		coral: "FF7F50",
+		cornflowerblue: "6495ED",
+		cornsilk: "FFF8DC",
+		crimson: "DC143C",
+		cyan: "00FFFF",
+		darkblue: "00008B",
+		darkcyan: "008B8B",
+		darkgoldenrod: "B8860B",
+		darkgray: "A9A9A9",
+		darkgreen: "006400",
+		darkgrey: "A9A9A9",
+		darkkhaki: "BDB76B",
+		darkmagenta: "8B008B",
+		darkolivegreen: "556B2F",
+		darkorange: "FF8C00",
+		darkorchid: "9932CC",
+		darkred: "8B0000",
+		darksalmon: "E9967A",
+		darkseagreen: "8FBC8F",
+		darkslateblue: "483D8B",
+		darkslategray: "2F4F4F",
+		darkslategrey: "2F4F4F",
+		darkturquoise: "00CED1",
+		darkviolet: "9400D3",
+		deeppink: "FF1493",
+		deepskyblue: "00BFFF",
+		dimgray: "696969",
+		dimgrey: "696969",
+		dodgerblue: "1E90FF",
+		firebrick: "B22222",
+		floralwhite: "FFFAF0",
+		forestgreen: "228B22",
+		fuchsia: "FF00FF",
+		gainsboro: "DCDCDC",
+		ghostwhite: "F8F8FF",
+		gold: "FFD700",
+		goldenrod: "DAA520",
+		gray: "808080",
+		green: "008000",
+		greenyellow: "ADFF2F",
+		grey: "808080",
+		honeydew: "F0FFF0",
+		hotpink: "FF69B4",
+		indianred: "CD5C5C",
+		indigo: "4B0082",
+		ivory: "FFFFF0",
+		khaki: "F0E68C",
+		lavender: "E6E6FA",
+		lavenderblush: "FFF0F5",
+		lawngreen: "7CFC00",
+		lemonchiffon: "FFFACD",
+		lightblue: "ADD8E6",
+		lightcoral: "F08080",
+		lightcyan: "E0FFFF",
+		lightgoldenrodyellow: "FAFAD2",
+		lightgray: "D3D3D3",
+		lightgreen: "90EE90",
+		lightgrey: "D3D3D3",
+		lightpink: "FFB6C1",
+		lightsalmon: "FFA07A",
+		lightseagreen: "20B2AA",
+		lightskyblue: "87CEFA",
+		lightslategray: "778899",
+		lightslategrey: "778899",
+		lightsteelblue: "B0C4DE",
+		lightyellow: "FFFFE0",
+		lime: "00FF00",
+		limegreen: "32CD32",
+		linen: "FAF0E6",
+		magenta: "FF00FF",
+		maroon: "800000",
+		mediumaquamarine: "66CDAA",
+		mediumblue: "0000CD",
+		mediumorchid: "BA55D3",
+		mediumpurple: "9370DB",
+		mediumseagreen: "3CB371",
+		mediumslateblue: "7B68EE",
+		mediumspringgreen: "00FA9A",
+		mediumturquoise: "48D1CC",
+		mediumvioletred: "C71585",
+		midnightblue: "191970",
+		mintcream: "F5FFFA",
+		mistyrose: "FFE4E1",
+		moccasin: "FFE4B5",
+		navajowhite: "FFDEAD",
+		navy: "000080",
+		oldlace: "FDF5E6",
+		olive: "808000",
+		olivedrab: "6B8E23",
+		orange: "FFA500",
+		orangered: "FF4500",
+		orchid: "DA70D6",
+		palegoldenrod: "EEE8AA",
+		palegreen: "98FB98",
+		paleturquoise: "AFEEEE",
+		palevioletred: "DB7093",
+		papayawhip: "FFEFD5",
+		peachpuff: "FFDAB9",
+		peru: "CD853F",
+		pink: "FFC0CB",
+		plum: "DDA0DD",
+		powderblue: "B0E0E6",
+		purple: "800080",
+		red: "FF0000",
+		rosybrown: "BC8F8F",
+		royalblue: "4169E1",
+		saddlebrown: "8B4513",
+		salmon: "FA8072",
+		sandybrown: "F4A460",
+		seagreen: "2E8B57",
+		seashell: "FFF5EE",
+		sienna: "A0522D",
+		silver: "C0C0C0",
+		skyblue: "87CEEB",
+		slateblue: "6A5ACD",
+		slategray: "708090",
+		slategrey: "708090",
+		snow: "FFFAFA",
+		springgreen: "00FF7F",
+		steelblue: "4682B4",
+		tan: "D2B48C",
+		teal: "008080",
+		thistle: "D8BFD8",
+		tomato: "FF6347",
+		turquoise: "40E0D0",
+		violet: "EE82EE",
+		wheat: "F5DEB3",
+		white: "FFFFFF",
+		whitesmoke: "F5F5F5",
+		yellow: "FFFF00",
+		yellowgreen: "9ACD32"
+	}
+}

@@ -1,6 +1,24 @@
 #include <emscripten/emscripten.h>
-#include <string.h>
+#include <stdlib.h>
+/*
+static inline uint32_t rotl32 (uint32_t n, unsigned int c)
+{
+  const unsigned int mask = (CHAR_BIT*sizeof(n) - 1);  // assumes width is a power of 2.
 
+  // assert ( (c<=mask) &&"rotate by type width or more");
+  c &= mask;
+  return (n<<c) | (n>>( (-c)&mask ));
+}
+
+static inline uint32_t rotr32 (uint32_t n, unsigned int c)
+{
+  const unsigned int mask = (CHAR_BIT*sizeof(n) - 1);
+
+  // assert ( (c<=mask) &&"rotate by type width or more");
+  c &= mask;
+  return (n>>c) | (n<<( (-c)&mask ));
+}
+*/
 void EMSCRIPTEN_KEEPALIVE InttoTranspose(const int dim, const long long int h, int * x){
   int idir, ibit, ifbit;
 
@@ -47,4 +65,8 @@ int* EMSCRIPTEN_KEEPALIVE hilbert(const int dim, const int nbits, const long lon
     InttoTranspose(dim, index, point);
     TransposetoAxes(point, nbits, dim);
     return point;
+}
+
+void EMSCRIPTEN_KEEPALIVE fp(int* ptr){
+    free(ptr);
 }

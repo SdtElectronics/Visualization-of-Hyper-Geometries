@@ -1919,22 +1919,6 @@ function copyTempDouble(ptr) {
       return HEAP8.length;
     }
 
-  function _llvm_stackrestore(p) {
-      var self = _llvm_stacksave;
-      var ret = self.LLVM_SAVEDSTACKS[p];
-      self.LLVM_SAVEDSTACKS.splice(p, 1);
-      stackRestore(ret);
-    }
-
-  function _llvm_stacksave() {
-      var self = _llvm_stacksave;
-      if (!self.LLVM_SAVEDSTACKS) {
-        self.LLVM_SAVEDSTACKS = [];
-      }
-      self.LLVM_SAVEDSTACKS.push(stackSave());
-      return self.LLVM_SAVEDSTACKS.length-1;
-    }
-
   
   function _emscripten_memcpy_big(dest, src, num) {
       HEAPU8.set(HEAPU8.subarray(src, src+num), dest);
@@ -2018,8 +2002,6 @@ var asmLibraryArg = {
   "_emscripten_get_heap_size": _emscripten_get_heap_size,
   "_emscripten_memcpy_big": _emscripten_memcpy_big,
   "_emscripten_resize_heap": _emscripten_resize_heap,
-  "_llvm_stackrestore": _llvm_stackrestore,
-  "_llvm_stacksave": _llvm_stacksave,
   "abortOnCannotGrowMemory": abortOnCannotGrowMemory,
   "flush_NO_FILESYSTEM": flush_NO_FILESYSTEM,
   "tempDoublePtr": tempDoublePtr,
@@ -2055,6 +2037,13 @@ asm["_fflush"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
   return real__fflush.apply(null, arguments);
+};
+
+var real__fp = asm["_fp"];
+asm["_fp"] = function() {
+  assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+  assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+  return real__fp.apply(null, arguments);
 };
 
 var real__free = asm["_free"];
@@ -2135,6 +2124,12 @@ var _fflush = Module["_fflush"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
   return Module["asm"]["_fflush"].apply(null, arguments)
+};
+
+var _fp = Module["_fp"] = function() {
+  assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+  assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+  return Module["asm"]["_fp"].apply(null, arguments)
 };
 
 var _free = Module["_free"] = function() {
@@ -2227,7 +2222,7 @@ if (!Module["intArrayToString"]) Module["intArrayToString"] = function() { abort
 Module["ccall"] = ccall;
 Module["cwrap"] = cwrap;
 if (!Module["setValue"]) Module["setValue"] = function() { abort("'setValue' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)") };
-if (!Module["getValue"]) Module["getValue"] = function() { abort("'getValue' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)") };
+Module["getValue"] = getValue;
 if (!Module["allocate"]) Module["allocate"] = function() { abort("'allocate' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)") };
 if (!Module["getMemory"]) Module["getMemory"] = function() { abort("'getMemory' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ). Alternatively, forcing filesystem support (-s FORCE_FILESYSTEM=1) can export this for you") };
 if (!Module["AsciiToString"]) Module["AsciiToString"] = function() { abort("'AsciiToString' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)") };

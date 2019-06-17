@@ -9,23 +9,25 @@ animate.r = false;
 
 document.getElementById("rotate").onclick = e => {
     if(controls.autoRotate)
-        e.target.firstChild.innerText = "rotate horizon";
+        document.getElementById("r").innerText = "rotate horizon";
     else
-        e.target.firstChild.innerText = "fix horizon";
+        document.getElementById("r").innerText = "fix horizon";
     controls.autoRotate = !controls.autoRotate;
 };
 
 document.getElementById("spin").onclick = e => {
     if(animate.r)
-        e.target.firstChild.innerText = "rotate objects";
+        document.getElementById("s").innerText = "rotate objects";
     else
-        e.target.firstChild.innerText = "fix objects";
+        document.getElementById("s").innerText = "fix objects";
     animate.r = !animate.r;
 };
 
 document.getElementById("cls").onclick = () => geomBase.purge();
 
 document.onload = draw();
+
+Object.defineProperty(window, 'cls', {get: () => geomBase.purge()});
 
 function initRender() { 
     renderer.autoUpdateObjects = true;
