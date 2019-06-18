@@ -83,11 +83,11 @@ geomBase.updateArr = (dot, geometry, color = null) => {
 
 geomBase.update = (angularSpeed = 0.1) => {
 	const time = (new Date()).getTime(),
-    	  timeDiff = time - geomBase.lastTime,
-		  angleChange = angularSpeed * timeDiff * 2 * Math.PI / 750;
+    	  timeDiff = time - geomBase.lastTime;
+	geomBase.angleChange = angularSpeed * timeDiff * 2 * Math.PI / 750;
 	geomBase.geomLst.forEach(e => {
-		if(!!(e.spin[0]))
-			e.update(angleChange, null, e.faceOrd);
+		if(e.timeVar)
+			e.anime(timeDiff);
 	});
 	geomBase.lastTime = time;
 }
@@ -120,6 +120,8 @@ class multiFaceGeom extends geomBase{
 	constructor(spin, projType){
 		super();
 		this.spin = spin;
+		if(!!(spin[0]))
+		 	this.timeVar = true;
 		this.projType = projType;
 		this.mesh = [];
 	}
@@ -188,6 +190,10 @@ class multiFaceGeom extends geomBase{
 				this.updateFace(arr, index, face);
 			});
 		}
+	}
+
+	anime(){
+		this.update(geomBase.angleChange, null, this.faceOrd);
 	}
 
 	destructor(){
@@ -360,10 +366,11 @@ class ndArr extends geomBase{
 		this.dim = dim;
 		this.Vecs = vec;
 		this.spin = spin;
+		if(!!(spin[0]))
+		 	this.timeVar = true;
 		this.projType = projType;
 		this.projVec(vec);
 		this.initArr();
-
 		this.arrs.forEach(e => scene.add(e));
 	}
 
@@ -376,7 +383,9 @@ class ndArr extends geomBase{
 			this.proj = this.Vecs.map(dot => {
 				const ret = [];
 				ret[0] = dot[0].slice(0,3);
-				ret[1] = geomBase.proj(dot[1], dist);
+				const vecVal = dot[1].concat();
+				vecVal.pop();
+				ret[1] = geomBase.proj(vecVal, Math.abs(dist));
 				return ret;
 			});
 		}else{
@@ -405,37 +414,48 @@ class ndArr extends geomBase{
 			this.Vecs = arr;
 		}
 		if(!!angleChange)
-			this.Vecs = this.Vecs.map(dots => {
-				return dots.map(dot => {
-					const r = this.spin.concat().fill(angleChange);
-					const color = dot[1].pop();
-					dot[1] = math.multiply(geomBase.rotateM(this.dim, this.spin, r), dot[1]);
-					dot[0] = math.multiply(geomBase.rotateM(this.dim, this.spin, r), dot[0]);
-					dot[1].push(color);
-					return [dot[0], dot[1]];
-				});
+			this.Vecs = this.Vecs.map(dot => {
+				const r = this.spin.concat().fill(angleChange);
+				const //color = dot[1].pop(),
+					  dbuf = dot[0].pop();
+				dot[1][3] = Math.cos(angleChange) * dot[1][3];
+				//dot[1] = math.multiply(geomBase.rotateM(this.dim, this.spin, r), dot[1]);
+				dot[0] = math.multiply(geomBase.rotateM(this.dim, this.spin, r), dot[0]);
+				//dot[1].push(color);
+				dot[0].push(dbuf);
+				return [dot[0], dot[1]];
 			});
 		this.projVec(this.projType);
 		this.proj.forEach((arr, index) => {
 			this.updateArr(arr, index);
 		});
+	}
 
+	anime(t){
+		if(!!this.func && this.func.tVarFunc)
+			this.updateFunc(this.func.tVarFunc(t));
+		this.update(geomBase.angleChange);
 	}
 
 	updateFunc(param){
 		this.Vecs = this.func.update(param);
 	}
+
+	destructor(){
+		this.arrs.forEach(e => scene.remove(e));
+	}
 }
 
 ndArr.fromFunc = (expr, initVal, initPara, steps, stepLen = 1, 
 												  dim = null, 
-												  spin = null, 
+												  spin = [], 
+												  tVarFunc = null,
 												  projType = false, 
 												  specColor = false) => {
 	if(!specColor){
 		dim = expr.length;
 		const rainbow = new Rainbow();
-		rainbow.setSpectrum("blue", "green", "red");
+		rainbow.setSpectrum("blue", "cyan", "green", "yellow", "orange", "red");
 		rainbow.setNumberRange(0, (steps * stepLen / 2) * Math.sqrt(2));
 		expr.push((function(dims) {
 			dims = dims.concat().pop();
@@ -443,13 +463,12 @@ ndArr.fromFunc = (expr, initVal, initPara, steps, stepLen = 1,
 		}).bind(rainbow));
 	}
 	const func = new ndVecFunc(expr, initVal, initPara, steps, stepLen, dim, true);
-	func.vecs.splice(1, 1);
-	console.log(func);
+	//func.vecs.splice(1, 1);
+	func.tVarFunc = tVarFunc;
 	const ret =  new ndArr(dim, func.vecs, spin, projType);
+	ret.func = func;
 	return ret;
 }
-
-
 
 class ndVecFunc{
 	constructor(expr, initVal, initPara, steps, stepLen = 1, dim = null, color = false){
@@ -460,12 +479,12 @@ class ndVecFunc{
 		this.stepLen = stepLen;
 		this.dim = !!dim ? dim : expr.length;
 		this.color = color;
-		
+		initVal -= stepLen;
 		permute(Array(this.dim).fill(Array(steps).fill(0).map(() => initVal += stepLen))).forEach((val, ind) => {
 			const vect = [];
 			if(color)
 				val = val.concat([val]);
-			expr.forEach((exp, i) => {
+			expr.forEach(exp => {
 					vect.push(exp(val, ...initPara));
 				});
 			this.vecs.push([val, vect]);
@@ -801,8 +820,12 @@ function ColourGradient()
 	// Extended list of CSS colornames s taken from
 	// http://www.w3.org/TR/css3-color/#svg-color
 	var colourNames = {
-		blue: "0000FF",
 		red: "FF0000",
-		green: "008000"
+		orange: "FFA500",
+		yellow: "FFFF00",
+		green: "008000",
+		cyan: "00FFFF",
+		blue: "0000FF",
+		purple: "800080",
 	}
 }

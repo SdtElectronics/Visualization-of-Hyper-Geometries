@@ -5,21 +5,35 @@ const renderer = new THREE.WebGLRenderer({antialias:true}),
       stats = new Stats(),
       controls = new THREE.OrbitControls( camera, renderer.domElement ); 
 
+const grd = document.getElementById("g"),
+     rta = document.getElementById("r"),
+     sp = document.getElementById("s");
+
+const gridXY = new THREE.GridHelper(5000, 50, 0xEED5B7, 0xEED5B7);
+
 animate.r = false;
+
+document.getElementById("grid").onclick = e => {
+    if(gridXY.visible)
+        grd.innerText = "show grid";
+    else
+        grd.innerText = "hide grid";
+    gridXY.visible = !gridXY.visible;
+}
 
 document.getElementById("rotate").onclick = e => {
     if(controls.autoRotate)
-        document.getElementById("r").innerText = "rotate horizon";
+        rta.innerText = "rotate horizon";
     else
-        document.getElementById("r").innerText = "fix horizon";
+        rta.innerText = "fix horizon";
     controls.autoRotate = !controls.autoRotate;
 };
 
 document.getElementById("spin").onclick = e => {
     if(animate.r)
-        document.getElementById("s").innerText = "rotate objects";
+        sp.innerText = "rotate objects";
     else
-        document.getElementById("s").innerText = "fix objects";
+        sp.innerText = "fix objects";
     animate.r = !animate.r;
 };
 
@@ -46,11 +60,8 @@ function initLight() {
 } 
     
 function initModel() { 
-
-    const gridXY = new THREE.GridHelper(5000, 50, 0xEED5B7, 0xEED5B7);
     gridXY.position.set( 0,0,0 );
     scene.add(gridXY);
-
 } 
     
 function initStats() { 
@@ -80,7 +91,6 @@ function initControls() {
 function render() { 
 
     renderer.render( scene, camera ); 
-    
 } 
     
 
@@ -99,7 +109,6 @@ function animate() {
     render(); 
     stats.update(); 
     requestAnimationFrame(animate); 
-    
 } 
     
 
@@ -110,8 +119,6 @@ function draw() {
     initModel(); 
     initControls(); 
     initStats(); 
-    
     animate(); 
     window.onresize = onWindowResize; 
-
 } 
