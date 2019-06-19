@@ -50,7 +50,13 @@ function initRender() {
 } 
     
 function initCamera() { 
-    camera.position.set(0, 0, 400); 
+
+    camera.position.set(0, 0, 400);
+    camera.up.x=0;      
+    camera.up.y=1;     
+    camera.up.z=0; 
+    camera.minPolarAngle = -Math.PI;
+    geomBase.camera = camera;
 } 
     
 function initLight() { 
@@ -61,6 +67,7 @@ function initLight() {
     
 function initModel() { 
     gridXY.position.set( 0,0,0 );
+    //gridXY.rotation.x = Math.PI/2;
     scene.add(gridXY);
 } 
     
@@ -81,7 +88,7 @@ function initControls() {
     //设置相机距离原点的最远距离 
     controls.minDistance = 200; 
     //设置相机距离原点的最远距离 
-    controls.maxDistance = 600; 
+    controls.maxDistance = 2000; 
     //是否开启右键拖拽 
     controls.enablePan = true; 
 
