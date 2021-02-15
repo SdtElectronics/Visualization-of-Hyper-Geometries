@@ -43,6 +43,10 @@ document.onload = draw();
 
 Object.defineProperty(window, 'cls', {get: () => geomBase.purge()});
 
+const parseVec = str => str.split(",").map(num => parseInt(num));
+
+const parseMat = str => str.split(";").map(vec => parseVec(vec));
+
 function initRender() { 
     renderer.autoUpdateObjects = true;
     renderer.setSize(window.innerWidth, window.innerHeight); 

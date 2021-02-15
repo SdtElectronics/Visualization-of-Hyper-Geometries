@@ -1,7 +1,22 @@
 html, body { 
     margin: 0; 
     height: 100vh; 
+    vertical-align: middle;
 } 
+
+a{
+    color: rgb(0, 230, 230);
+    text-decoration: none;
+}
+
+a:visited {
+    color: rgb(0, 230, 230);
+    text-decoration: none;
+}
+
+a:hover{
+    text-shadow: 0px 0px 3px #E7F7FF;
+}
 
 canvas { 
     display: block; 
@@ -13,23 +28,277 @@ body > div{
     right: 0px;
 }
 
-.btn{
-    border: 0px none;
-    margin: 1vh 1.2vw 1vh 1.2vw;
-    padding: .7vh .7vw .7vh .7vw;
-    font-size: 2.7vh;
-    border-radius: 6px;
-    background-color: rgba(102, 232, 255, 0.6);
-    color: #E7F7FF;
-    text-shadow: 0px 0px 1.5px #002B49;
-    display: flex;
-    justify-content : center;
+hr {
+    width: 90%;
+    color:#E7F7FF;
 }
-.btn:hover{
+
+h2 {
+    display: inline-block;
+    font-size: 1.8em;
+    font-weight: 500;
+    padding-left: 1.2em;
+    margin-bottom: 0.51em;
+}
+
+span { 
+    white-space: nowrap;
+}
+
+svg {
+    display: inline-flex;
+    align-self: center;
+    bottom: -0.125em;
+    position: relative;
+    height: 1em;
+    width: 1em;
+}
+
+*:focus {
+    outline: none;
+}
+
+#btnCont{
+    display: flex;
+    flex-direction: row;
+    position: absolute;
+    bottom: 0px;
+    right: 0px;
+    margin: 1em;
+}
+
+#optCont:hover  .btnHid{
+    width: 7.5em;
+    margin: 0.5em;
+}
+
+#grid{
+    margin-left: 0px;
+}
+
+#optCont{
+    display: inline-flex;
+    flex-direction: row;
+    bottom: 0px;
+    right: 0px;
+    margin: 0px;
+    min-width: 2em;
+}
+
+#optCont:first-child{
+    margin-left: 0px;
+}
+
+#addBtn::after{
+    content: "+";
+    text-shadow: 0px 0px 1.5px #002B49;
+    font-size: 1.5em;
+    color: #E7F7FF;
+    justify-content : center;
+    display: inline-block;
+    width: 100%;
+    text-align: center;
+    position: relative;
+    top: -0.05em;
+}
+
+#infoBtn::after{
+    content: "?";
+    text-shadow: 0px 0px 1.5px #002B49;
+    font-size: 1.2em;
+    color: #E7F7FF;
+    justify-content : center;
+    display: inline-block;
+    width: 100%;
+    text-align: center;
+    position: relative;
+    top: 0.2em;
+}
+
+#optBtn::after{
+    content: "⋯";
+    text-shadow: 0px 0px 1.5px #002B49;
+    font-size: 1.5em;
+    color: #E7F7FF;
+    justify-content : center;
+    display: inline-block;
+    width: 100%;
+    text-align: center;
+    position: relative;
+    top: -0.06em;
+}
+
+#addGeom{
+    width: 4em;
+    position: absolute;
+    bottom: 0.48em;
+    right: 0.82em;
+}
+
+#HpCbOpt{ 
+    display: none;
+}
+
+#geomType:not([data-chosen='0'])~#HpCbOpt{ 
+    display: none;
+}
+
+#geomType[data-chosen='0']~#HpCbOpt{ 
+    display: block !important;
+}
+
+#geomType[data-chosen='1']~#SimpOpt{
+    display: block !important;
+}
+
+#geomType[data-chosen='2']~#TnsrOpt{
+    display: block !important;
+}
+
+#geomType[data-chosen='3']~ #DemoOpt{
+    display: block !important;
+}
+
+#infoDiag{
+    width: 30em;
+    height: 22em;
+}
+
+#infoDiag > span{
+    text-align: center;
+    display: block;
+    margin: 0.6em;
+}
+
+.close{
+    font-size: 1.5em;
+    position: absolute;
+    top: 0.82em;
+    right: 0.82em;
+    border-radius: 1em;
+    height: 2em;
+    width: 2em;
+}
+
+.close::after{
+    content: "×";
+    text-shadow: 0px 0px 1.5px #002B49;
+    font-size: 1.5em;
+    color: #E7F7FF;
+    justify-content : center;
+    display: inline-block;
+    width: 100%;
+    text-align: center;
+    position: relative;
+    top: -0.06em;
+}
+
+.btn{
+    display: inline-block;
+    border-radius: 1em;
+    height: 2em;
+    width: 2em;
+    font-size: 1.5em;
+    background-color: rgba(0, 25, 56, 0.69);
+    color: rgb(0, 230, 230);
+    text-shadow: 0px 0px 1.5px #002B49;
+    justify-content : center;
+    margin: 0.5em;
+}
+
+.btnHid{
+    display: inline-flex;
+    border-radius: 1em;
+    height: 2em;
+    width: 0px;
+    font-size: 1.4em;
+    background-color: rgba(0, 25, 56, 0.69);
+    color: rgb(0, 230, 230);
+    text-shadow: 0px 0px 1.5px #002B49;
+    justify-content : center;
+    align-items: center;
+    margin: 0px;
+    overflow: hidden;
+}
+
+#optCont > .btnHid{
+    transition: 0.6s;
+}
+
+.geomOpt > div{
+    display: inline-block;
+    margin: 0px;
+    padding: 0px;
+    width: 53%;
+}
+
+.geomOpt > div:first-child{
+    margin-right: -2.1em;
+    width: 50%;
+}
+
+.geomOpt > div > div{
+    display: flex;
+    flex-direction: row;
+}
+
+.diagCont{
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%,-50%);
+    width: 45em;
+    clear: both;
+    border-radius: 1em;
+    background-color: rgba(0, 25, 56, 0.69);
+    color: rgb(0, 230, 230);
+    visibility: hidden;
+}
+
+.diagCont:target{
+    visibility: visible;
+}
+
+.diagCont > span{
+    font-size: 1.3em;
+    margin: 0.6em 0px 0.6em 2em;
+}
+
+.diagCont > select, .geomOpt > select{
+    font-size: 1.3em;
+    margin: 0.6em 0px 0.6em 0.6em;
+    padding: 0.1em 0px 0.1em 0.3em;
+    width: 9em;
+    color: rgb(0, 25, 56);
+    background-color: #E7F7FF;;
+    border-radius: 0.7em;
+}
+
+.btn:hover, .btnHid:hover, .close:hover{
     background-color: rgba(102, 232, 255, 0.8);
     box-shadow: 0px 0px 1.5px #0099ff;
     cursor: pointer;
 }
-.btn:active{
+.btn:active, .btnHid:active .close:active{
     background-color: rgba(102, 232, 255, 0.3);
+}
+
+.geomOpt{
+    display: none;
+}
+
+.geomOpt span{
+    font-size: 1.3em;
+    margin: 0.6em 0px 0.6em 2em;
+}
+
+.geomOpt input:not([type=radio]), .geomOpt > div > div > select{
+    font-size: 1.3em;
+    margin: 0.6em 1em 0.6em 0.6em;
+    padding: 0.1em 0px 0.1em 0.3em;
+    width: 6em;
+    color: rgb(0, 25, 56);
+    background-color: #E7F7FF;;
+    border-radius: 0.7em;
+    flex-grow: 1;
 }

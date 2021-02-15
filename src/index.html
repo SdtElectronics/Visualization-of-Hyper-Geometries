@@ -1,29 +1,129 @@
-    
-<!DOCTYPE html> 
-<html lang="en"> 
+    <!DOCTYPE html> 
+<html lang = "en"> 
 <head> 
-    <meta charset="UTF-8"> 
-    <title>Title</title> 
-    <link rel = "stylesheet" href="./style.css"/> 
+    <meta charset = "UTF-8"> 
+    <title>Visualization of Hyper Geometrices</title> 
+    <link rel = "stylesheet" href = "./style.css"/> 
 
 </head> 
 
 <body> 
-    <div>
-        <div id = "grid" class = "btn"><p id = "g">hide grid</p></div>
-        <div id = "rotate" class = "btn"><p id = "r">rotate horizon</p></div>
-        <div id = "spin" class = "btn"><p id = "s">rotate object</p></div>
-        <div id = "cls" class = "btn"><p>clear screen</p></div>
+    <div id = "btnCont">
+        <a id = "infoBtn" class = "btn" title = "About" href = "#infoDiag"></a>
+        <div id = "optCont">
+            <div id = "grid" class = "btnHid"><span id = "g">hide grid</span></div>
+            <div id = "rotate" class = "btnHid"><span id = "r">spin camera</span></div>
+            <div id = "spin" class = "btnHid"><span id = "s">spin object</span></div>
+            <div id = "cls" class = "btnHid"><span>clear screen</span></div>
+            <div id = "optBtn" class = "btn" title = "Options"></div>
+        </div>
+        <a id = "addBtn" class = "btn" title = "Add Geometry" href = "#addDiag"></a>
     </div>
+    <div id = "addDiag" class = "diagCont">
+        <h2>Add Geometry</h2>
+        <a class = "close" href = "#"></a>
+        <hr/>
+        <span>Type:</span>
+        <select id = "geomType" onchange = "this.dataset.chosen = this.value;" data-chosen='0'>
+            <option value = "0">Hypercube</option>
+            <option value = "1">Simplex</option>
+            <option value = "2">Tensor</option>
+            <option value = "3">Demo</option>
+        </select>
+        <div id = "HpCbOpt" class = "geomOpt">
+            <div>
+                <div><span>Dimension:</span><input type = "number" value = "5" min = "3"></div>
+                <div><span>Offset: </span><input type = "text" value = "0, 0, 0" pattern = "\d+, \d+, \d+"/></div>
+                <span>Projection:</span>
+                    <span>Central <input type = "radio" name = "hyCbProjType" value = "0" checked></span>
+            </div>
+            <div>
+                <div>
+                    <span>Edge Lengths:</span>
+                    <input type = "text" value = "80, 80, 80, 80, 80" pattern = "\d+, \d+, \d+, \d+, \d+"/> 
+                </div>
+                <div>
+                    <span>Spin:</span>
+                    <input type = "text" value = "0, 4; 1, 4" pattern = "\d+, \d+; \d+, \d+"/>
+                </div>
+                <span>Parallel <input type = "radio" name = "hyCbProjType" value = "1"></span>
+            </div>
+        </div>
+        <div id = "SimpOpt" class = "geomOpt">
+            <div>
+                <div>
+                    <span>Edge Lengths:</span>
+                    <input type = "text" value = "90, 90, 90, 90" pattern = "\d+, \d+, \d+, \d+"/> 
+                </div>
+                <div>
+                    <span>Offset: </span>
+                    <input type = "text" value = "0, 0, 0" pattern = "\d+, \d+, \d+"/>
+                </div>                
+                <span>Projection:</span>
+                    <span>Central <input type = "radio" name = "simpProjType" value = "0" checked></span>
+            </div>
+            <div>
+                <div><span>Spin:</span><input type = "text" pattern = "\d+, \d+, \d+"/></div>
+                <span>Parallel <input type = "radio" name = "simpProjType" value = "1"></span>
+            </div>     
+        </div>
+        <div id = "TnsrOpt" class = "geomOpt">
+            <div>
+                <div>
+                    <span>Matrix: </span>
+                    <input type = "text" value = "0, -70, 0; 70, 0, 0; 0, 0, 0" pattern = "\d+, \d+, \d+, \d+"/> 
+                </div>
+                               
+            </div>
+            <div>
+                 <div><span>Offset: </span><input type = "text" value = "0, 0, 0" pattern = "\d+, \d+, \d+"/></div>
+            </div>  
+        </div>
+        <div id = "DemoOpt" class = "geomOpt">
+            <span>Demos:</span>
+            <select id = "geomType" onchange = "this.dataset.chosen = this.value;" data-chosen='0'>
+                <option value = "0">4D Hypercube 0</option>
+                <option value = "1">4D Hypercube 1</option>
+                <option value = "2">5D Hypercube</option>
+                <option value = "3">Simplex</option>
+                <option value = "4">Tensor</option>
+                <option value = "5">Vector Field 0</option>
+                <option value = "6">Vector Field 1</option>
+                <option value = "7">Vector Field 2</option>
+            </select>
+        </div>
+        <a id = "addGeom" class = "btnHid" href = "#">Add</a>
+    </div>
+    <div id = "infoDiag" class = "diagCont">
+        <h2>About</h2>
+        <a class = "close" href = "#"></a>
+        <hr/>
+        <span>Powered by <a href = "https://threejs.org/">three.js</a></span>
+        <span>Explore more in <a href = "https://github.com/SdtElectronics/Visualization-of-Hyper-Geometries/wiki/Classes-Reference">Project Wiki</a></span>
+        <span><a href="https://github.com/SdtElectronics/Visualization-of-Hyper-Geometries/">Project Homepage</a></span>
+        <br/>
+        <span>Copyright © 2021 &nbsp;
+            <a href = "https://github.com/SdtElectronics">
+                <svg viewBox = "0 0 16 16" version = "1.1" width = "24" aria-hidden = "true">
+                    <path fill = "#E7F7FF" fill-rule = "evenodd"
+                        d = "M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z">
+                    </path>
+                </svg>&nbsp;
+                SdtElectronics
+            </a>
+        </span>
+        <span>All Rights Reserved.</span>   
+    </div>
+
 </body> 
-<script src="./math.min.js"></script> 
-<script src="./three.min.js"></script> 
-<script src="./SceneUtils.js"></script> 
-<script src="./OrbitControls.js"></script> 
-<script src="./stats.min.js"></script> 
-<script async type="text/javascript" src="Hilbert.js"></script>
-<script src="./lib.js"></script> 
-<script src="./dist.js"></script> 
-<script src="./demo.js"></script> 
+<script src = "./math.min.js"></script> 
+<script src = "./three.min.js"></script> 
+<script src = "./SceneUtils.js"></script> 
+<script src = "./OrbitControls.js"></script> 
+<script src = "./stats.min.js"></script> 
+<script async type = "text/javascript" src = "Hilbert.js"></script>
+<script src = "./lib.js"></script> 
+<script src = "./dist.js"></script> 
+<script src = "./demo.js"></script> 
 
 </html>
