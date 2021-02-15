@@ -47,6 +47,121 @@ const parseVec = str => str.split(",").map(num => parseInt(num));
 
 const parseMat = str => str.split(";").map(vec => parseVec(vec));
 
+const genVecValidation = dim => `\\s*${Array(dim).fill("\\d+").join("\\s*,\\s*")}\\s*`;
+
+const hyCbDims = document.getElementById("hyCbDims");
+const hyCbEdge = document.getElementById("hyCbEdge");
+const hyCbBias = document.getElementById("hyCbBias");
+const hyCbSpin = document.getElementById("hyCbSpin");
+const simpEdge = document.getElementById("simpEdge");
+const simpBias = document.getElementById("simpBias");
+const simpSpin = document.getElementById("simpSpin");
+const tnsrBias = document.getElementById("tnsrBias");
+const tnsrSpin = document.getElementById("tnsrSpin");
+
+const addDemoCb = [
+    () => new hyperCube(4, Array(4).fill(100), [0,50,50], [], [[0, 3], [1, 3]], 0),
+    () => new hyperCube(4, Array(4).fill(80), [-150,80,50], [], [[0, 3], [1, 3]], 1),
+    () => new hyperCube(5, Array(5).fill(80), [150,80,50], [], [[0,4], [1, 4]], 1),
+    () => new simplex4( Array(4).fill(100), null, [[0,1, Math.PI/4], [0,1, Math.PI/4]], [[2, 3]], 0),
+    () => new nDtensor([[0,-70,0],[70,0,0],[0,0,0]]),
+    () => ndArr.fromFunc([e => e[1] / 3, e => -e[0] / 3, e => 0, e => -e[3] / 5], -160,[], 5, 80, 4, 0,[], null, 0),
+    () => ndArr.fromFunc([e => e[0] / 5, e => e[1] / 5, e => e[2] / 5, e => e[3]/5], -100,[], 5, 50, 4, 0,[[0,3],[2,3]], null, 0),
+    () => ndArr.fromFunc([e => e[1] / 5, e => -e[2] / 5, e => e[0] / 5, e => -e[3] / 5], -160,[], 5, 80, 4, 0,[[0,3],[2,3]], null, 0)
+];
+
+const addGeomCb = [
+    e => {    
+        if(!hyCbDims.checkValidity()){
+            alert("Dimension must be an integer greater than 3");
+            return false;
+        }
+        const dim = parseInt(hyCbDims.value);
+        if(!hyCbEdge.checkValidity()){
+            alert(`Length of edges must be a vector of dimension ${dim}`);
+            return false;
+        }
+        const edge = parseVec(hyCbEdge.value);
+        if(!hyCbBias.checkValidity()){
+            alert("Offset must be a vector of dimension 3");
+            return false;
+        }
+        const offset = parseVec(hyCbBias.value);
+        if(!hyCbSpin.checkValidity()){
+            alert("Invalid Spin Matrix");
+            return false;
+        }
+        const spin = [... new Set(parseMat(hyCbSpin.value))]; //mimic Array.prototype.unique
+        const projType = document.querySelector("input[name='hyCbProjType']:checked").value;
+        new hyperCube(dim, edge, offset, [], spin, projType == 0);
+        return true;
+    },
+    e => {
+        if(!simpEdge.checkValidity()){
+            alert(`Length of edges must be a vector of dimension 4`);
+            return false;
+        }
+        const edge = parseVec(simpEdge.value);
+        if(!simpBias.checkValidity()){
+            alert("Offset must be a vector of dimension 3");
+            return false;
+        }
+        const offset = parseVec(simpBias.value);
+        if(!simpSpin.checkValidity()){
+            alert("Invalid Spin Matrix");
+            return false;
+        }
+        const spin = [... new Set(parseMat(simpSpin.value))]; //mimic Array.prototype.unique
+        const projType = document.querySelector("input[name='simpProjType']:checked").value;
+        new simplex4(edge, offset, [], spin, projType==0);
+        return true;
+    },
+    e => {
+        if(!tnsrEdge.checkValidity()){
+            alert(`Expected a 3x3 matrix`);
+            return false;
+        }
+        const edge = parseMat(tnsrEdge.value);
+        if(!tnsrBias.checkValidity()){
+            alert("Offset must be a vector of dimension 3");
+            return false;
+        }
+        const offset = parseVec(tnsrBias.value);
+        new nDtensor(edge, offset);
+        return true;
+    },
+    e => {
+        addDemoCb[parseInt(document.getElementById("demoType").value)]();
+        location.href = "#";
+    }
+];
+
+const routeCb = e => {
+    const rt = document.location.href.split("?").pop();
+    if(/^Demo\d$/.test(rt)){
+        addDemoCb[parseInt(rt.slice(-1))]();
+    }
+}
+
+window.onload = routeCb;
+window.onpopstate = routeCb;
+
+document.getElementById("addGeom").onclick = e => {
+    if(addGeomCb[parseInt(document.getElementById("geomType").value)]()){
+        location.href = "#";
+    }
+};
+
+hyCbDims.onchange = e => {
+    if(e.target.checkValidity()){
+        const dim = parseInt(hyCbDims.value);
+        hyCbEdge.pattern = genVecValidation(dim);
+        const range = `[0-${dim - 1}]`;
+        const combs = dim * (dim - 1) / 2 - 1;
+        hyCbSpin.pattern = `(${range}\\s*,\\s*${range}\\s*;\\s*){0,${combs}}(${range}\\s*,\\s*${range}\\s*)`
+    }
+}
+
 function initRender() { 
     renderer.autoUpdateObjects = true;
     renderer.setSize(window.innerWidth, window.innerHeight); 

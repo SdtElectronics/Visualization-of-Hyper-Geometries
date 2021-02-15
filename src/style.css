@@ -41,6 +41,10 @@ h2 {
     margin-bottom: 0.51em;
 }
 
+input:invalid {
+    color: red !important;
+}
+
 span { 
     white-space: nowrap;
 }
