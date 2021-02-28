@@ -24,8 +24,7 @@ canvas {
 
 body > div{
     position: fixed;
-    bottom: 0px;
-    right: 0px;
+
 }
 
 hr {
@@ -163,6 +162,10 @@ svg {
     display: block !important;
 }
 
+#geomType[data-chosen='4']~ #SurfOpt{
+    display: block !important;
+}
+
 #infoDiag{
     width: 30em;
     height: 22em;
@@ -236,7 +239,7 @@ svg {
     width: 53%;
 }
 
-.geomOpt > div:first-child{
+.geomOpt > div:first-of-type{
     margin-right: -2.1em;
     width: 50%;
 }
@@ -257,6 +260,7 @@ svg {
     background-color: rgba(0, 25, 56, 0.69);
     color: rgb(0, 230, 230);
     visibility: hidden;
+    padding: 0px 0px 4.8em 0px
 }
 
 .diagCont:target{

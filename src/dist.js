@@ -58,6 +58,10 @@ const simpBias = document.getElementById("simpBias");
 const simpSpin = document.getElementById("simpSpin");
 const tnsrBias = document.getElementById("tnsrBias");
 const tnsrSpin = document.getElementById("tnsrSpin");
+const surfDims = document.getElementById("surfDims");
+const surfEdge = document.getElementById("surfEdge");
+const surfBias = document.getElementById("surfBias");
+const surfSpin = document.getElementById("surfSpin");
 
 const addDemoCb = [
     () => new hyperCube(4, Array(4).fill(100), [0,50,50], [], [[0, 3], [1, 3]], 0),
@@ -155,7 +159,7 @@ document.getElementById("addGeom").onclick = e => {
 hyCbDims.onchange = e => {
     if(e.target.checkValidity()){
         const dim = parseInt(hyCbDims.value);
-        hyCbEdge.pattern = genVecValidation(dim);
+        hyCbEdge.pattern = `(\\s*\\d+\\s*,){${dim - 1}}\\s*\\d+\\s*`;
         const range = `[0-${dim - 1}]`;
         const combs = dim * (dim - 1) / 2 - 1;
         hyCbSpin.pattern = `(${range}\\s*,\\s*${range}\\s*;\\s*){0,${combs}}(${range}\\s*,\\s*${range}\\s*)`

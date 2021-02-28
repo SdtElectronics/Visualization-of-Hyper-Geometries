@@ -312,6 +312,28 @@ class simplex4 extends multiFaceGeom{
 	}
 }
 
+class simpSurf extends multiFaceGeom{
+	constructor(dim, dims, offset = null, rotation = null, spin = [], projType = true){
+		super(spin, projType);
+		this.dim = dim;
+		this.surf = dims;
+		this.faceOrd = simpSurf.genFace(dim).map(e => new THREE.Face3(...e));
+        //this.faceOrd = [new THREE.Face3(0, 1, 2)];
+		this.initFace(rotation, this.faceOrd);
+		this.update(null, !!offset ? offset : [0, 0, 0], this.faceOrd);
+		this.lines.forEach(e => scene.add(e));
+		this.mesh.forEach(e => scene.add(e));
+	}
+}
+simpSurf.genFace = vertices => {
+    let i = 2;
+    const ret = [];
+    while(i < vertices){
+        ret.push([0, i - 1, i++]);
+    }
+    return ret;
+}
+
 class hilbertCurve extends geomBase{
 	constructor(dim, orders, uLength = 30, projType = false){
 		super();

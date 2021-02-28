@@ -28,6 +28,7 @@
             <option value = "0">Hypercube</option>
             <option value = "1">Simplex</option>
             <option value = "2">Tensor</option>
+            <option value = "4">Surface</option>
             <option value = "3">Demo</option>
         </select>
         <div id = "HpCbOpt" class = "geomOpt">
@@ -79,6 +80,27 @@
                  <div><span>Offset: </span><input id = "tnsrBias" type = "text" value = "0, 0, 0" pattern = "\s*-?\d+\s*,\s*-?\d+\s*,\s*-?\d+\s*" required /></div>
             </div>  
         </div>
+        <div id = "SurfOpt" class = "geomOpt">
+            <span>Matrix:</span>
+            <input id = "surfEdge" type = "text" value = "80, 80, 80, 80, 80" pattern = "(\d+, \d+, \d+, \d+, \d+)+" required/><br/> 
+            <div>
+                <div><span>Dimension:</span><input id = "surfDims" type = "number" value = "5" min = "4" required/></div>
+                <div><span>Offset: </span><input id = "surfBias" type = "text" value = "0, 0, 0" pattern = "\s*-?\d+\s*,\s*-?\d+\s*,\s*-?\d+\s*" required/></div>
+                <span>Projection:</span>
+                    <span>Central <input type = "radio" name = "surfProjType" value = "0" checked></span>
+            </div>
+            <div>
+                <div>
+                    <span>Num of Faces:</span>
+                    <input id="surfNums" type="number" value="1" min="1" required />
+                </div>
+                <div>
+                    <span>Spin:</span>
+                    <input id = "surfSpin" type = "text" value = "0, 4; 1, 4" pattern = "\d+, \d+; \d+, \d+" required/>
+                </div>
+                <span>Parallel <input type = "radio" name = "surfProjType" value = "1"></span>
+            </div>
+        </div>
         <div id = "DemoOpt" class = "geomOpt">
             <span>Demos:</span>
             <select id = "demoType" onchange = "this.dataset.chosen = this.value;" data-chosen='0'>
@@ -90,7 +112,7 @@
                 <option value = "5">Vector Field 0</option>
                 <option value = "6">Vector Field 1</option>
                 <option value = "7">Vector Field 2</option>
-            </select>
+            </select><br/>
         </div>
         <div id = "addGeom" class = "btnHid">Add</div>
     </div>
