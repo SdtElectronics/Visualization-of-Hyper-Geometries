@@ -6,8 +6,8 @@ const renderer = new THREE.WebGLRenderer({antialias:true}),
       controls = new THREE.OrbitControls( camera, renderer.domElement ); 
 
 const grd = document.getElementById("g"),
-     rta = document.getElementById("r"),
-     sp = document.getElementById("s");
+      rta = document.getElementById("r"),
+      sp = document.getElementById("s");
 
 const gridXY = new THREE.GridHelper(5000, 50, 0xEED5B7, 0xEED5B7);
 
@@ -200,26 +200,15 @@ function initStats() {
 
 function initControls() { 
 
-    // 使动画循环使用时阻尼或自转 意思是否有惯性 
     controls.enableDamping = true; 
-    //动态阻尼系数 就是鼠标拖拽旋转灵敏度 
-    //controls.dampingFactor = 0.25; 
-    //是否可以缩放 
     controls.enableZoom = true; 
-    //是否自动旋转 
-    //controls.autoRotate = false; 
-    //设置相机距离原点的最远距离 
     controls.minDistance = 200; 
-    //设置相机距离原点的最远距离 
     controls.maxDistance = 2000; 
-    //是否开启右键拖拽 
     controls.enablePan = true; 
-
 } 
     
 
 function render() { 
-
     renderer.render( scene, camera ); 
 } 
     

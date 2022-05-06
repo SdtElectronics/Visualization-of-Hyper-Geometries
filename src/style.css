@@ -2,6 +2,7 @@ html, body {
     margin: 0; 
     height: 100vh; 
     vertical-align: middle;
+    font-family: source sans pro,Helvetica,Arial,sans-serif;
 } 
 
 a{
@@ -97,12 +98,10 @@ svg {
     text-shadow: 0px 0px 1.5px #002B49;
     font-size: 1.5em;
     color: #E7F7FF;
-    justify-content : center;
     display: inline-block;
     width: 100%;
     text-align: center;
-    position: relative;
-    top: -0.05em;
+    line-height: 1.4em;
 }
 
 #infoBtn::after{
@@ -110,12 +109,10 @@ svg {
     text-shadow: 0px 0px 1.5px #002B49;
     font-size: 1.2em;
     color: #E7F7FF;
-    justify-content : center;
     display: inline-block;
     width: 100%;
     text-align: center;
-    position: relative;
-    top: 0.2em;
+    line-height: 1.7em;
 }
 
 #optBtn::after{
@@ -123,12 +120,10 @@ svg {
     text-shadow: 0px 0px 1.5px #002B49;
     font-size: 1.5em;
     color: #E7F7FF;
-    justify-content : center;
     display: inline-block;
     width: 100%;
     text-align: center;
-    position: relative;
-    top: -0.06em;
+    line-height: 1.3em;
 }
 
 #addGeom{
@@ -169,6 +164,7 @@ svg {
 #infoDiag{
     width: 30em;
     height: 22em;
+    padding-bottom: 0px;
 }
 
 #infoDiag > span{
@@ -192,12 +188,10 @@ svg {
     text-shadow: 0px 0px 1.5px #002B49;
     font-size: 1.5em;
     color: #E7F7FF;
-    justify-content : center;
     display: inline-block;
     width: 100%;
     text-align: center;
-    position: relative;
-    top: -0.06em;
+    line-height: 1.4em;
 }
 
 .btn{
@@ -209,7 +203,6 @@ svg {
     background-color: rgba(0, 25, 56, 0.69);
     color: rgb(0, 230, 230);
     text-shadow: 0px 0px 1.5px #002B49;
-    justify-content : center;
     margin: 0.5em;
 }
 
